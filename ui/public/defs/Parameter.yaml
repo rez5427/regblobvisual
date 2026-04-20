@@ -1,0 +1,117 @@
+MPU0_PARAM:
+  - name: MPU0_WT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU0_PAD_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU0_IACT_FP_PARAM_ADDR0
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU0_IACT_FP_PARAM_ADDR1
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+MPU1_PARAM:
+  - name: MPU1_WT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU1_PAD_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU1_IACT_FP_PARAM_ADDR0
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU1_IACT_FP_PARAM_ADDR1
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+ITPA_PARAM:
+  - name: ITPA_M0_ALU_MCFG
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: ITPA_M0_MUL_MCFG
+  - name: ITPA_M1_ALU_MCFG
+  - name: ITPA_M1_MUL_MCFG
+  - name: ITPA_E_MUL_PRM_MCFG
+  - name: ITPA_E_ALU_PRM_MCFG
+  - name: ITPA_E_MUL_FPOP_MCFG
+  - name: ITPA_E_ALU_FPOP_MCFG
+  - name: ITPA_OCVT_BIAS_MCFG
+  - name: ITPA_OCVT_SCALE_MCFG
+  - name: ITPA_OCVT_TRSH_MCFG
+  - name: ITPA_OCVT_OFPSH_MCFG
+ITPB_PARAM:
+  - name: ITPB_M0_ALU_MCFG
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: ITPB_M0_MUL_MCFG
+  - name: ITPB_M1_ALU_MCFG
+  - name: ITPB_M1_MUL_MCFG
+  - name: ITPB_E_MUL_PRM_MCFG
+  - name: ITPB_E_ALU_PRM_MCFG
+  - name: ITPB_E_MUL_FPOP_MCFG
+  - name: ITPB_E_ALU_FPOP_MCFG
+  - name: ITPB_OCVT_BIAS_MCFG
+  - name: ITPB_OCVT_SCALE_MCFG
+  - name: ITPB_OCVT_TRSH_MCFG
+  - name: ITPB_OCVT_OFPSH_MCFG
+ITPC_PARAM:
+  - name: ITPC_M0_ALU_MCFG
+  - name: ITPC_M0_MUL_MCFG
+  - name: ITPC_M1_ALU_MCFG
+  - name: ITPC_M1_MUL_MCFG
+  - name: ITPC_E_MUL_PRM_MCFG
+  - name: ITPC_E_ALU_PRM_MCFG
+  - name: ITPC_E_MUL_FPOP_MCFG
+  - name: ITPC_E_ALU_FPOP_MCFG
+  - name: ITPC_OCVT_BIAS_MCFG
+  - name: ITPC_OCVT_SCALE_MCFG
+  - name: ITPC_OCVT_TRSH_MCFG
+  - name: ITPC_OCVT_OFPSH_MCFG
+PTP_PARAM:
+  - name: PTP_PAD_ADDR
+  - name: PTP_WEIGHT_ADDR
+  - name: PTP_BIAS_ADDR
+  - name: PTP_SCALE_ADDR
+  - name: PTP_SHIFT_ADDR
+  - name: PTP_IACT_FP_PARAM_ADDR
+  - name: PTP_OACT_FP_PARAM_ADDR

@@ -1,0 +1,1326 @@
+DMA:
+  - name: "0"
+    args:
+      - name: "ext_stride_l"
+        bits: [0,15]
+        default: 0
+      - name: "ext_width"
+        bits: [16,31]
+        default: 0
+  - name: "1"
+    args:
+      - name: "ext_trans_size"
+        bits: [0,23]
+        default: 0
+      - name: "ext_trans_num"
+        bits: [24,31]
+        default: 0
+  - name: "2"
+    args:
+      - name: "ext_gap"
+        bits: [0,23]
+        default: 0
+      - name: "ext_stride_h"
+        bits: [24,31]
+        default: 0
+  - name: "3"
+    args:
+      - name: "int_gap"
+        bits: [0,23]
+        default: 0
+      - name: "int_stride_h"
+        bits: [24,31]
+        default: 0
+  - name: "4"
+    args:
+      - name: "int_stride_l"
+        bits: [0,15]
+        default: 0
+      - name: "int_width"
+        bits: [16,31]
+        default: 0
+  - name: "5"
+    args:
+      - name: "int_trans_size"
+        bits: [0,23]
+        default: 0
+      - name: "int_trans_num"
+        bits: [24,31]
+        default: 0
+
+HEAD_CTRL:
+  - name: "end"
+    args:
+      - name: "end"
+        bits: [0,31]
+        default: 0x81
+  - name: "nda"
+    args:
+      - name: "nda"
+        bits: [0,31]
+        default: 0
+  - name: "ndfc"
+    args:
+      - name: "ndfc"
+        bits: [0,31]
+        default: 0
+  - name: "dfc"
+    args:
+      - name: "dfc"
+        bits: [0,31]
+        default: 0
+  - name: "loop"
+    args:
+      - name: "loop"
+        bits: [0,15]
+        default: 0
+      - name: "mode"
+        bits: [16]
+        default: 1
+CSRAC_CTRL:
+  - name: "CSRAC"
+    args:
+      - name: "addr"
+        bits: [0,10]
+        default: 0
+      - name: "count"
+        bits: [16,21]
+        default: 0
+AITE_CTRL:
+  - name: "AITE_CTRL"
+  - name: "AITE_STATE"
+MPU_TWIN_CTRL:
+  - name: "MPU_TWIN_CTRL"
+    args:
+      - name: "mpu0_disable"
+        bits: [0]
+        default: 0
+      - name: "mpu1_disable"
+        bits: [1]
+        default: 0
+      - name: "output"
+        bits: [2,3]
+        default: 0
+      - name: "op_mode"
+        bits: [4,5]
+        default: 0
+      - name: "batch_num"
+        bits: [8,9]
+        default: 0
+MPU0_CTRL:
+  - name: "MPU0_CTRL"
+    args:
+      - name: "op_mode"
+        bits: [0,2]
+        default: 0
+      - name: "pad_en"
+        bits: [4]
+        default: 0
+      - name: "pad_mode"
+        bits: [5]
+        default: 0
+      - name: "wb_rgn_id"
+        bits: [6]
+        default: 0
+      - name: "down_sample"
+        bits: [7]
+        default: 0
+      - name: "op_fmt"
+        bits: [8,11]
+        default: 0
+      - name: "ich_gsize"
+        bits: [12,14]
+        default: 0
+      - name: "chw_mode"
+        bits: [15]
+        default: 0
+      - name: "matmul_mode"
+        bits: [16,18]
+        default: 0
+      - name: "wgt_reuse"
+        bits: [19]
+        default: 0
+      - name: "wtaq_wgt_dtype"
+        bits: [20]
+        default: 0
+      - name: "wtaq_wgt_fp8_fmt"
+        bits: [21]
+        default: 0
+      - name: "wtaq_wgt_width"
+        bits: [22,23]
+        default: 0
+      - name: "winograd_ctrl"
+        bits: [24]
+        default: 0
+      - name: "deconv_en"
+        bits: [25]
+        default: 0
+      - name: "input_convert"
+        bits: [26,27]
+        default: 0
+      - name: "wtaq_input_fp_type"
+        bits: [28, 29]
+        default: 0
+      - name: "wtaq_sym"
+        bits: [30]
+        default: 0
+      - name: "wtaq_en"
+        bits: [31]
+        default: 0
+  - name: "MPU0_BE_CTRL"
+    args:
+    - name: "ocvt_srl_shamt"
+      bits: [0,5]
+      default: 0
+  - name: "MPU0_UNB_CTRL"
+    args:
+    - name: "unb_mode"
+      bits: [0]
+      default: 0
+    - name: "unb_pbuf_size"
+      bits: [2,3]
+      default: 0
+  - name: "MPU0_KNL_CTRL"
+    args:
+    - name: "kernel_w"
+      bits: [0,3]
+      default: 0
+    - name: "kernel_h"
+      bits: [4,7]
+      default: 0
+    - name: "stride_w"
+      bits: [8,10]
+      default: 0
+    - name: "stride_h"
+      bits: [12,14]
+      default: 0
+    - name: "dilation_w"
+      bits: [16,18]
+      default: 0
+    - name: "dilation_h"
+      bits: [20,22]
+      default: 0
+  - name: "MPU0_WT_SPARSE"
+    args:
+    - name: "sparse_mode"
+      bits: [0,1]
+      default: 0
+    - name: "block_len"
+      bits: [4,19]
+      default: 0
+  - name: "MPU0_WT_SIZE"
+    args:
+    - name: "size"
+      bits: [0,7]
+      default: 0
+  - name: "MPU0_W_STEP"
+    args:
+    - name: "step_in"
+      bits: [0,7]
+      default: 0
+    - name: "step_out"
+      bits: [8,15]
+      default: 0
+    - name: "step_len"
+      bits: [16,23]
+      default: 0
+    - name: "ovlp"
+      bits: [24,27]
+      default: 0
+  - name: "MPU0_H_STEP"
+    args:
+    - name: "step_in"
+      bits: [0,7]
+      default: 0
+    - name: "step_out"
+      bits: [8,15]
+      default: 0
+    - name: "step_len"
+      bits: [16,23]
+      default: 0
+    - name: "ovlp"
+      bits: [24,27]
+      default: 0
+  - name: "MPU0_BATCH_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_DECONV_PAD"
+    args:
+    - name: "pad_w_en"
+      bits: [0]
+      default: 0
+    - name: "pad_h_en"
+      bits: [4]
+      default: 0
+    - name: "zero_skip_en"
+      bits: [8]
+      default: 0
+  - name: "MPU0_IACT_CTAG_SURF_STRIDE"
+  - name: "MPU0_IACT_CTAG_BATCH_STRIDE"
+  - name: "MPU0_IACT_CTRL"
+    args:
+    - name: "zero_skip_en"
+      bits: [6]
+      default: 0
+  - name: "MPU0_PAD_SIZE"
+    args:
+      - name: "pad_right"
+        bits: [0,5]
+        default: 0
+      - name: "pad_left"
+        bits: [8,13]
+        default: 0
+      - name: "pad_bottom"
+        bits: [16,21]
+        default: 0
+      - name: "pad_top"
+        bits: [24,29]
+        default: 0
+  - name: "MPU0_PAD_VALUE"
+    args:
+      - name: "value"
+        bits: [16,31]
+        default: 0
+  - name: "MPU0_FP_PARAM"
+  - name: "MPU0_IACT_W_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,19]
+      default: 0
+  - name: "MPU0_IACT_S_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,30]
+      default: 0
+  - name: "MPU0_IACT_TOTAL_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_ACT_C_CTRL"
+    args:
+    - name: "iact_chn"
+      bits: [0,11]
+      default: 0
+    - name: "oact_chn"
+      bits: [16,28]
+      default: 0
+    - name: "iact_chn_h"
+      bits: [30]
+      default: 0
+  - name: "MPU0_ACT_W_CTRL"
+    args:
+    - name: "iact_width"
+      bits: [0,12]
+      default: 0
+    - name: "oact_width"
+      bits: [16,28]
+      default: 0
+  - name: "MPU0_ACT_H_CTRL"
+    args:
+    - name: "iact_height"
+      bits: [0,11]
+      default: 0
+    - name: "oact_height"
+      bits: [16,28]
+      default: 0
+  - name: "MPU0_WT_COMPRESS"
+  - name: "MPU0_BATCH_MATMUL0"
+  - name: "MPU0_BATCH_MATMUL1"
+  - name: "MPU0_BATCH_MATMUL2"
+  - name: "MPU0_CONV3D_CTRL"
+  - name: "MPU0_CONV3D_WT_STRIDE"
+MPU1_CTRL:
+  - name: "MPU1_CTRL"
+    args:
+      - name: "op_mode"
+        bits: [0,2]
+        default: 0
+      - name: "pad_en"
+        bits: [4]
+        default: 0
+      - name: "pad_mode"
+        bits: [5]
+        default: 0
+      - name: "wb_rgn_id"
+        bits: [6]
+        default: 0
+      - name: "down_sample"
+        bits: [7]
+        default: 0
+      - name: "op_fmt"
+        bits: [8,11]
+        default: 0
+      - name: "ich_gsize"
+        bits: [12,14]
+        default: 0
+      - name: "chw_mode"
+        bits: [15]
+        default: 0
+      - name: "matmul_mode"
+        bits: [16,18]
+        default: 0
+      - name: "wgt_reuse"
+        bits: [19]
+        default: 0
+      - name: "wtaq_wgt_dtype"
+        bits: [20]
+        default: 0
+      - name: "wtaq_wgt_fp8_fmt"
+        bits: [21]
+        default: 0
+      - name: "wtaq_wgt_width"
+        bits: [22,23]
+        default: 0
+      - name: "winograd_ctrl"
+        bits: [24]
+        default: 0
+      - name: "deconv_en"
+        bits: [25]
+        default: 0
+      - name: "input_convert"
+        bits: [26,27]
+        default: 0
+      - name: "wtaq_input_fp_type"
+        bits: [28, 29]
+        default: 0
+      - name: "wtaq_sym"
+        bits: [30]
+        default: 0
+      - name: "wtaq_en"
+        bits: [31]
+        default: 0
+  - name: "MPU1_BE_CTRL"
+    args:
+    - name: "ocvt_srl_shamt"
+      bits: [0,5]
+      default: 0
+  - name: "MPU1_UNB_CTRL"
+    args:
+    - name: "unb_mode"
+      bits: [0]
+      default: 0
+    - name: "unb_pbuf_size"
+      bits: [2,3]
+      default: 0
+  - name: "MPU1_KNL_CTRL"
+    args:
+    - name: "kernel_w"
+      bits: [0,3]
+      default: 0
+    - name: "kernel_h"
+      bits: [4,7]
+      default: 0
+    - name: "stride_w"
+      bits: [8,10]
+      default: 0
+    - name: "stride_h"
+      bits: [12,14]
+      default: 0
+    - name: "dilation_w"
+      bits: [16,18]
+      default: 0
+    - name: "dilation_h"
+      bits: [20,22]
+      default: 0
+  - name: "MPU1_WT_SPARSE"
+    args:
+    - name: "sparse_mode"
+      bits: [0,1]
+      default: 0
+    - name: "block_len"
+      bits: [4,19]
+      default: 0
+  - name: "MPU1_WT_SIZE"
+    args:
+    - name: "size"
+      bits: [0,7]
+      default: 0
+  - name: "MPU1_W_STEP"
+    args:
+    - name: "step_in"
+      bits: [0,7]
+      default: 0
+    - name: "step_out"
+      bits: [8,15]
+      default: 0
+    - name: "step_len"
+      bits: [16,23]
+      default: 0
+    - name: "ovlp"
+      bits: [24,27]
+      default: 0
+  - name: "MPU1_H_STEP"
+    args:
+    - name: "step_in"
+      bits: [0,7]
+      default: 0
+    - name: "step_out"
+      bits: [8,15]
+      default: 0
+    - name: "step_len"
+      bits: [16,23]
+      default: 0
+    - name: "ovlp"
+      bits: [24,27]
+      default: 0
+  - name: "MPU1_BATCH_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_DECONV_PAD"
+    args:
+    - name: "pad_w_en"
+      bits: [0]
+      default: 0
+    - name: "pad_h_en"
+      bits: [4]
+      default: 0
+    - name: "zero_skip_en"
+      bits: [8]
+      default: 0
+  - name: "MPU1_IACT_CTAG_SURF_STRIDE"
+  - name: "MPU1_IACT_CTAG_BATCH_STRIDE"
+  - name: "MPU1_IACT_CTRL"
+  - name: "MPU1_PAD_SIZE"
+  - name: "MPU1_PAD_VALUE"
+  - name: "MPU1_FP_PARAM"
+  - name: "MPU1_IACT_W_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,19]
+      default: 0
+  - name: "MPU1_IACT_S_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,30]
+      default: 0
+  - name: "MPU1_IACT_TOTAL_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_ACT_C_CTRL"
+    args:
+    - name: "iact_chn"
+      bits: [0,11]
+      default: 0
+    - name: "oact_chn"
+      bits: [16,28]
+      default: 0
+    - name: "iact_chn_h"
+      bits: [30]
+      default: 0
+  - name: "MPU1_ACT_W_CTRL"
+    args:
+    - name: "iact_width"
+      bits: [0,12]
+      default: 0
+    - name: "oact_width"
+      bits: [16,28]
+      default: 0
+  - name: "MPU1_ACT_H_CTRL"
+    args:
+    - name: "iact_height"
+      bits: [0,11]
+      default: 0
+    - name: "oact_height"
+      bits: [16,28]
+      default: 0
+  - name: "MPU1_WT_COMPRESS"
+  - name: "MPU1_BATCH_MATMUL0"
+  - name: "MPU1_BATCH_MATMUL1"
+  - name: "MPU1_BATCH_MATMUL2"
+  - name: "MPU1_CONV3D_CTRL"
+  - name: "MPU1_CONV3D_WT_STRIDE"
+ITP_CTRL:
+  - name: "ITP_MODE_CCFG"
+ITPA_CTRL:
+  - name: "ITPA_M0_CCFG"
+    args:
+      - name: "relu_bypass_en"
+        bits: [27]
+        default: 1
+      - name: "all_bypass_en"
+        bits: [31]
+        default: 1
+      - name: "alu_bypass_en"
+        bits: [0]
+        default: 0
+      - name: "alu_op"
+        bits: [1,2]
+        default: 0
+      - name: "alu_psrc"
+        bits: [3,4]
+        default: 0
+      - name: "alu_xlsh"
+        bits: [5,9]
+        default: 0
+      - name: "alu_psrc_prec"
+        bits: [10,11]
+        default: 0
+      - name: "alu_psrc_dtype"
+        bits: [12]
+        default: 0
+      - name: "mul_bypass_en"
+        bits: [13]
+        default: 0
+      - name: "mul_psrc"
+        bits: [14,15]
+        default: 0
+      - name: "mul_trsh"
+        bits: [16,22]
+        default: 0
+      - name: "mul_op"
+        bits: [23]
+        default: 0
+      - name: "mul_psrc_prec"
+        bits: [24,25]
+        default: 0
+      - name: "mul_psrc_dtype"
+        bits: [26]
+        default: 0
+  - name: "ITPA_M0_ALU_PCFG"
+    args:
+      - name: "alu_pval"
+        bits: [0,31]
+        default: 0
+  - name: "ITPA_M0_MUL_PCFG"
+    args:
+      - name: "mul_pval"
+        bits: [0,31]
+        default: 0
+  - name: "ITPA_M1_CCFG"
+    args:
+      - name: "relu_bypass_en"
+        bits: [27]
+        default: 1
+      - name: "all_bypass_en"
+        bits: [31]
+        default: 1
+      - name: "alu_bypass_en"
+        bits: [0]
+        default: 0
+      - name: "alu_op"
+        bits: [1,2]
+        default: 0
+      - name: "alu_psrc"
+        bits: [3,4]
+        default: 0
+      - name: "alu_xlsh"
+        bits: [5,9]
+        default: 0
+      - name: "alu_psrc_prec"
+        bits: [10,11]
+        default: 0
+      - name: "alu_psrc_dtype"
+        bits: [12]
+        default: 0
+      - name: "mul_bypass_en"
+        bits: [13]
+        default: 0
+      - name: "mul_psrc"
+        bits: [14,15]
+        default: 0
+      - name: "mul_trsh"
+        bits: [16,22]
+        default: 0
+      - name: "mul_op"
+        bits: [23]
+        default: 0
+      - name: "mul_psrc_prec"
+        bits: [24,25]
+        default: 0
+      - name: "mul_psrc_dtype"
+        bits: [26]
+        default: 0
+  - name: "ITPA_M1_ALU_PCFG"
+    args:
+      - name: "alu_pval"
+        bits: [0,31]
+        default: 0
+  - name: "ITPA_M1_MUL_PCFG"
+    args:
+      - name: "mul_pval"
+        bits: [0,31]
+        default: 0
+  - name: "ITPA_E_CCFG"
+    args:
+      - name: "all_bypass_en"
+        bits: [31]
+        default: 1
+      - name: "mul_bypass_en"
+        bits: [0]
+        default: 1
+      - name: "mul_prsc"
+        bits: [1,2]
+        default: 0
+      - name: "mul_op"
+        bits: [3]
+        default: 0
+      - name: "mul_trsh"
+        bits: [4,10]
+        default: 0
+      - name: "mul_psrc_prec"
+        bits: [11,12]
+        default: 0
+      - name: "alu_bypass_en"
+        bits: [13]
+        default: 1
+      - name: "alu_clamp_en"
+        bits: [14]
+        default: 0
+      - name: "alu_psrc"
+        bits: [15,16]
+        default: 0
+      - name: "alu_op"
+        bits: [17,18]
+        default: 0
+      - name: "alu_psrc_prec"
+        bits: [19,20]
+        default: 0
+      - name: "e_alu_ptype"
+        bits: [25]
+        default: 0
+      - name: "e_mul_ptype"
+        bits: [26]
+        default: 0
+  - name: "ITPA_E_MUL_PCFG"
+    args:
+      - name: "mul_pval"
+        bits: [0,31]
+        default: 0
+  - name: "ITPA_E_ALU_PCFG"
+    args:
+      - name: "mul_val"
+        bits: [0, 31]
+        default: 0
+  - name: "ITPA_E_ALU_CLAMP_PCFG0"
+    args:
+      - name: "hi_val"
+        bits: [0, 31]
+        default: 0
+  - name: "ITPA_E_ALU_CLAMP_PCFG1"
+    args:
+      - name: "low_val"
+        bits: [0, 31]
+        default: 0
+  - name: "ITPA_E_MUL_PCVT_CCFG"
+    args:
+      - name: "cvt_bypass_en"
+        bits: [0]
+        default: 1
+  - name: "ITPA_E_MUL_PCVT_PCFG"
+  - name: "ITPA_E_ALU_PCVT_CCFG"
+    args:
+      - name: "cvt_bypass_en"
+        bits: [0]
+        default: 1
+      - name: "trsh"
+        bits: [1, 6]
+        default: 0
+      - name: "dtype"
+        bits: [8]
+        default: 0
+      - name: "e_alu_fp_psrc"
+        bits: [16]
+        default: 0
+      - name: "e_alu_fp_en"
+        bits: [17, 18]
+        default: 0
+  - name: "ITPA_E_ALU_PCVT_PCFG"
+    args:
+      - name: "k"
+        bits: [16,31]
+        default: 0
+      - name: "bias"
+        bits: [0,15]
+        default: 0
+  - name: "ITPA_E_MUL_FP_PCFG"
+  - name: "ITPA_E_ALU_FP_PCFG"
+  - name: "ITPA_LUT_PCFGO"
+  - name: "ITPA_LUT_PCFG1"
+  - name: "ITPA_LUT_OCFG"
+    args:
+    - name: "lut_bypass_en"
+      bits: [25]
+      default: 1
+  - name: "ITPA_OCVT_CFG"
+    args:
+    - name: "dtype"
+      bits: [18]
+      default: 0
+    - name: "prec"
+      bits: [16,17]
+      default: 0
+    - name: "trsh"
+      bits: [0,5]
+      default: 0
+    - name: "trsh_psrc"
+      bits: [6]
+      default: 0
+    - name: "scale_psrc"
+      bits: [7]
+      default: 0
+    - name: "bias_psrc"
+      bits: [8]
+      default: 0
+  - name: "ITPA_OCVT_SUB_CFG"
+    args:
+    - name: "bias"
+      bits: [0,31]
+      default: 0
+  - name: "ITPA_OCVT_MUL_CFG"
+    args:
+    - name: "k_param"
+      bits: [0,15]
+      default: 0
+  - name: "ITPA_OCVT_ASYM_CFG"
+  - name: "ITPA_ACT_CCFG0"
+    args:
+      - name: "act_height"
+        bits: [0,11]
+        default: 0
+      - name: "act_width"
+        bits: [16,28]
+        default: 0
+  - name: "ITPA_ACT_CCFG1"
+    args:
+      - name: "act_chan"
+        bits: [0,12]
+        default: 0
+      - name: "op_mode"
+        bits: [16]
+        default: 1
+      - name: "itp_bypass_en"
+        bits: [17]
+        default: 1
+      - name: "in_chan"
+        bits: [18]
+        default: 1
+  - name: "ITPA_ACT_STEP_CCFG"
+    args:
+      - name: "w_step_in"
+        bits: [0,7]
+        default: 0
+      - name: "h_step_in"
+        bits: [8,15]
+        default: 0
+      - name: "w_step_len"
+        bits: [16,23]
+        default: 0
+      - name: "h_step_len"
+        bits: [24,31]
+        default: 0
+  - name: "ITPA_E_MUL_SURF_STRIDE"
+  - name: "ITPA_E_MUL_TOTAL_STRIDE"
+  - name: "ITPA_E_MUL_WIDTH_STRIDE"
+  - name: "ITPA_E_MUL_BATCH_STRIDE"
+  - name: "ITPA_E_ALU_SURF_STRIDE"
+    args:
+      - name: "stride"
+        bits: [0, 30]
+        default: 0
+  - name: "ITPA_E_ALU_TOTAL_STRIDE"
+  - name: "ITPA_E_ALU_WIDTH_STRIDE"
+    args:
+      - name: "stride"
+        bits: [0, 19]
+        default: 0
+  - name: "ITPA_E_ALU_BATCH_STRIDE"
+    args:
+      - name: "stride"
+        bits: [0, 31]
+        default: 0
+ITPB_CTRL:
+  - name: "ITPB_M0_CCFG"
+    args:
+      - name: "relu_bypass_en"
+        bits: [27]
+        default: 1
+      - name: "all_bypass_en"
+        bits: [31]
+        default: 1
+  - name: "ITPB_M0_ALU_PCFG"
+  - name: "ITPB_M0_MUL_PCFG"
+  - name: "ITPB_M1_CCFG"
+    args:
+      - name: "relu_bypass_en"
+        bits: [27]
+        default: 1
+      - name: "all_bypass_en"
+        bits: [31]
+        default: 1
+  - name: "ITPB_M1_ALU_PCFG"
+  - name: "ITPB_M1_MUL_PCFG"
+  - name: "ITPB_E_CCFG"
+    args:
+    - name: "all_bypass_en"
+      bits: [31]
+      default: 1
+  - name: "ITPB_E_MUL_PCFG"
+  - name: "ITPB_E_ALU_PCFG"
+  - name: "ITPB_E_ALU_CLAMP_PCFGO"
+  - name: "ITPB_E_ALU_CLAMP_PCFG1"
+  - name: "ITPB_E_MUL_PCVT_CCFG"
+  - name: "ITPB_E_MUL_PCVT_PCFG"
+  - name: "ITPB_E_ALU_PCVT_CCFG"
+  - name: "ITPB_E_ALU_PCVT_PCFG"
+  - name: "ITPB_E_MUL_FP_PCFG"
+  - name: "ITPB_E_ALU_FP_PCFG"
+  - name: "ITPB_LUT_PCFGO"
+  - name: "ITPB_LUT_PCFG1"
+  - name: "ITPB_LUT_OCFG"
+    args:
+    - name: "lut_bypass_en"
+      bits: [25]
+      default: 1
+  - name: "ITPB_OCVT_CFG"
+  - name: "ITPB_OCVT_SUB_CFG"
+  - name: "ITPB_OCVT_MUL_CFG"
+  - name: "ITPB_OCVT_ASYM_CFG"
+  - name: "ITPB_ACT_CCFGO"
+  - name: "ITPB_ACT_CCFG1"
+    args:
+      - name: "act_chan"
+        bits: [0,12]
+        default: 0
+      - name: "op_mode"
+        bits: [16]
+        default: 1
+      - name: "itp_bypass_en"
+        bits: [17]
+        default: 1
+      - name: "in_chan"
+        bits: [18]
+        default: 1
+  - name: "ITPB_ACT_STEP_CCFG"
+  - name: "ITPB_E_MUL_SURF_STRIDE"
+  - name: "ITPB_E_MUL_TOTAL_STRIDE"
+  - name: "ITPB_E_MUL_WIDTH_STRIDE"
+  - name: "ITPB_E_MUL_BATCH_STRIDE"
+  - name: "ITPB_E_ALU_SURF_STRIDE"
+  - name: "ITPB_E_ALU_TOTAL_STRIDE"
+  - name: "ITPB_E_ALU_WIDTH_STRIDE"
+  - name: "ITPB_E_ALU_BATCH_STRIDE"
+
+PTP_CTRL:
+  - name: "PTP_MODE"
+    args:
+      - name: "ptp_mode"
+        bits: [0,2]
+        default: 7
+      - name: "pad_en"
+        bits: [4]
+        default: 0
+  - name: "PTP_KERNEL"
+    args:
+       - name: "kw"
+         bits: [0,2]
+         default: 0
+       - name: "kh"
+         bits: [3,5]
+         default: 0
+       - name: "stride_w"
+         bits: [8,10]
+         default: 0
+       - name: "stride_h"
+         bits: [12,14]
+         default: 0
+  - name: "PTP_PAD_SIZE"
+    args:
+        - name: "pad_right"
+          bits: [0,4]
+          default: 0
+        - name: "pad_left"
+          bits: [8,12]
+          default: 0
+        - name: "pad_bottom"
+          bits: [16,20]
+          default: 0
+        - name: "pad_top"
+          bits: [24,29]
+          default: 0
+  - name: "PTP_PAD_VALUE"
+    args:
+        - name: "value"
+          bits: [0,15]
+          default: 0
+  - name: "PTP_BIAS_CTRL"
+    args:
+        - name: "bias_type"
+          bits: [0]
+          default: 0
+    args:
+        - name: "bias_fmt"
+          bits: [1]
+          default: 0
+    args:
+        - name: "bias_shift"
+          bits: [8,12]
+          default: 0
+  - name: "PTP_BIAS_VALUE"
+    args:
+        - name: "value"
+          bits: [0,31]
+          default: 0
+  - name: "PTP_SCALE_CTRL"
+    args:
+        - name: "shift_type"
+          bits: [0]
+          default: 0
+        - name: "scale_shift"
+          bits: [8,13]
+          default: 0
+        - name: "scale_value"
+          bits: [16,31]
+          default: 0
+  - name: "PTP_ASYM_VALUE"
+  - name: "PTP_FP_PARAM"
+  - name: "PTP_W_STEP"
+    args:
+        - name: "w_step_in"
+          bits: [0,12]
+          default: 0
+        - name: "w_step_len"
+          bits: [16,28]
+          default: 0
+  - name: "PTP_H_STEP"
+    args:
+        - name: "h_step_in"
+          bits: [0,11]
+          default: 0
+        - name: "h_step_len"
+          bits: [16,27]
+          default: 0
+  - name: "PTP_STEP_OUT"
+    args:
+        - name: "w_step_out"
+          bits: [0,11]
+          default: 0
+        - name: "h_step_out"
+          bits: [16,27]
+          default: 0
+  - name: "PTP_C_STEP"
+    args:
+        - name: "c_step_out"
+          bits: [0,8]
+          default: 0
+  - name: "PTP_IACT_CTRL"
+  - name: "PTP_WEIGHT_SPARSE"
+  - name: "PTP_ACT_C_CTRL"
+    args:
+        - name: "ic"
+          bits: [0,12]
+          default: 0
+        - name: "oc"
+          bits: [16,28]
+          default: 0
+  - name: "PTP_ACT_W_CTRL"
+    args:
+        - name: "iw"
+          bits: [0,12]
+          default: 0
+        - name: "ow"
+          bits: [16,28]
+          default: 0
+  - name: "PTP_ACT_H_CTRL"
+    args:
+        - name: "ih"
+          bits: [0,11]
+          default: 0
+        - name: "oh"
+          bits: [16,27]
+          default: 0
+  - name: "PTP_PAD_UNB_ADDR"
+  - name: "PTP_WEIGHT_UNB_ADDR"
+  - name: "PTP_BIAS_UNB_ADDR"
+  - name: "PTP_SCALE_UNB_ADDR"
+  - name: "PTP_FP_PARAM_UNB_ADDR"
+  - name: "PTP_ROIP_UNB_ADDR"
+  - name: "PTP_IACT_W_STRIDE"
+    args:
+      - name: "stride_val"
+        bits: [0,19]
+        default: 0
+  - name: "PTP_IACT_SURF_STRIDE"
+    args:
+      - name: "stride_val"
+        bits: [0,19]
+        default: 0
+  - name: "PTP_IACT_TOTAL_STRIDE"
+  - name: "PTP_IACT_BATCH_STRIDE"
+    args:
+      - name: "stride_val"
+        bits: [0, 31]
+        default: 0
+  - name: "PTP_IACT_CTAG_SURF_STRIDE"
+  - name: "PTP_IACT_CTAG_BATCH_STRIDE"
+WB_RGN0_CTRL:
+  - name: "WB_MODE_CTRL"
+    args:
+    - name: "rgn_en"
+      bits: [0,1]
+      default: 0
+    - name: "rgn_ppen"
+      bits: [5]
+      default: 0
+    - name: "fmt_trans"
+      bits: [8]
+      default: 0 # 0:chwc16 1:hwc
+    - name: "rgn_out_buf"
+      bits: [12,13]
+      default: 0
+    - name: "rgn_int_buf"
+      bits: [16,17]
+      default: 0
+    - name: "rgn1_size"
+      bits: [20,23]
+      default: 0
+    - name: "rgn0_alloc"
+      bits: [24]
+      default: 0
+    - name: "rgn1_alloc"
+      bits: [25]
+      default: 0
+    - name: "rgn0_bypass"
+      bits: [28]
+      default: 0
+    - name: "rgn1_bypass"
+      bits: [29]
+      default: 0
+  - name: "WB_RGN0_OACT_CTRL"
+  - name: "WB_RGN0_OACT_L_STRIDE"
+    args:
+    - name: "l_stride"
+      bits: [0,24]
+      default: 0
+  - name: "WB_RGN0_OACT_S_STRIDE"
+    args:
+    - name: "s_stride"
+      bits: [0,30]
+      default: 0
+  - name: "WB_RGN0_INT_LS_STRIDE"
+    args:
+    - name: "int_s_stride"
+      bits: [0,11]
+      default: 0
+    - name: "int_l_stride"
+      bits: [16,26]
+      default: 0
+  - name: "WB_RGN0_OCTAG_S_STRIDE"
+  - name: "WB_RGN0_OACT_BATCH_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "WB_RGN0_OCTAG_BATCH_STRIDE"
+  - name: "WB_RGN0_OACT_WH_OFFS"
+WB_RGN1_CTRL:
+  - name: "UNKNOW"
+  - name: "WB_RGN1_OACT_CTRL"
+  - name: "WB_RGN1_OACT_L_STRIDE"
+    args:
+    - name: "l_stride"
+      bits: [0,24]
+      default: 0
+  - name: "WB_RGN1_OACT_S_STRIDE"
+    args:
+    - name: "s_stride"
+      bits: [0,30]
+      default: 0
+  - name: "WB_RGN1_INT_LS_STRIDE"
+    args:
+    - name: "int_s_stride"
+      bits: [0,11]
+      default: 0
+    - name: "int_l_stride"
+      bits: [16,26]
+      default: 0
+  - name: "WB_RGN1_OCTAG_S_STRIDE"
+  - name: "WB_RGN1_OACT_BATCH_STRIDE"
+    args:
+    - name: "stride"
+      bits: [0,31]
+      default: 0
+  - name: "WB_RGN1_OCTAG_BATCH_STRIDE"
+  - name: "WB_RGN1_OACT_WH_OFFS"
+UNB_CTRL:
+  - name: "UNB_MPU0_BASE_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,19]
+      default: 0
+  - name: "UNB_MPU1_BASE_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,19]
+      default: 0
+  - name: "UNB_ITP_BASE_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,19]
+      default: 0
+  - name: "UNB_PTP_BASE_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,19]
+      default: 0
+
+MPU0_PARAM:
+  - name: "MPU0_WT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_PAD_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_IACT_FP_PARAM_ADDR0"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_IACT_FP_PARAM_ADDR1"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+MPU1_PARAM:
+  - name: "MPU1_WT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_PAD_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_IACT_FP_PARAM_ADDR0"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_IACT_FP_PARAM_ADDR1"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+ITPA_PARAM:
+  - name: "ITPA_M0_ALU_MCFG"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "ITPA_M0_MUL_MCFG"
+  - name: "ITPA_M1_ALU_MCFG"
+  - name: "ITPA_M1_MUL_MCFG"
+  - name: "ITPA_E_MUL_PRM_MCFG"
+  - name: "ITPA_E_ALU_PRM_MCFG"
+  - name: "ITPA_E_MUL_FPOP_MCFG"
+  - name: "ITPA_E_ALU_FPOP_MCFG"
+  - name: "ITPA_OCVT_BIAS_MCFG"
+  - name: "ITPA_OCVT_SCALE_MCFG"
+  - name: "ITPA_OCVT_TRSH_MCFG"
+  - name: "ITPA_OCVT_OFPSH_MCFG"
+ITPB_PARAM:
+  - name: "ITPB_M0_ALU_MCFG"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "ITPB_M0_MUL_MCFG"
+  - name: "ITPB_M1_ALU_MCFG"
+  - name: "ITPB_M1_MUL_MCFG"
+  - name: "ITPB_E_MUL_PRM_MCFG"
+  - name: "ITPB_E_ALU_PRM_MCFG"
+  - name: "ITPB_E_MUL_FPOP_MCFG"
+  - name: "ITPB_E_ALU_FPOP_MCFG"
+  - name: "ITPB_OCVT_BIAS_MCFG"
+  - name: "ITPB_OCVT_SCALE_MCFG"
+  - name: "ITPB_OCVT_TRSH_MCFG"
+  - name: "ITPB_OCVT_OFPSH_MCFG"
+ITPC_PARAM:
+  - name: "ITPC_M0_ALU_MCFG"
+  - name: "ITPC_M0_MUL_MCFG"
+  - name: "ITPC_M1_ALU_MCFG"
+  - name: "ITPC_M1_MUL_MCFG"
+  - name: "ITPC_E_MUL_PRM_MCFG"
+  - name: "ITPC_E_ALU_PRM_MCFG"
+  - name: "ITPC_E_MUL_FPOP_MCFG"
+  - name: "ITPC_E_ALU_FPOP_MCFG"
+  - name: "ITPC_OCVT_BIAS_MCFG"
+  - name: "ITPC_OCVT_SCALE_MCFG"
+  - name: "ITPC_OCVT_TRSH_MCFG"
+  - name: "ITPC_OCVT_OFPSH_MCFG"
+PTP_PARAM:
+  - name: "PTP_PAD_ADDR"
+  - name: "PTP_WEIGHT_ADDR"
+  - name: "PTP_BIAS_ADDR"
+  - name: "PTP_SCALE_ADDR"
+  - name: "PTP_SHIFT_ADDR"
+  - name: "PTP_IACT_FP_PARAM_ADDR"
+  - name: "PTP_OACT_FP_PARAM_ADDR"
+
+MPU0_ACT:
+  - name: "MPU0_IACT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU0_BATCH_MATMUL_ICA_ADDR"
+  - name: "MPU0_IACT_CTAG_ADDR"
+  - name: "MPU0_UNB_ADDR"
+MPU1_ACT:
+  - name: "MPU1_IACT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "MPU1_BATCH_MATMUL_ICA_ADDR"
+  - name: "MPU1_IACT_CTAG_ADDR"
+  - name: "MPU1_UNB_ADDR"
+ITP_ACT:
+  - name: "ITP_ACC_INTP_DST_MCFGO"
+  - name: "ITP_ACC_DST_MCFGO1"
+  - name: "ITP_INTP_MCFG"
+ITPA_ACT:
+  - name: "ITPA_E_MUL_ACT_MCFG"
+  - name: "ITPA_E_ALU_ACT_MCFG"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+ITPB_ACT:
+  - name: "ITPB_E_MUL_ACT_MCFG"
+  - name: "ITPB_E_ALU_ACT_MCFG"
+ITPC_ACT:
+  - name: "ITPC_E_MUL_ACT_MCFG"
+  - name: "ITPC_E_ALU_ACT_MCFG"
+PTP_ACT:
+  - name: "PTP_IACT_ADDR"
+    args:
+      - name: "addr"
+        bits: [0,31]
+        default: 0
+  - name: "PTP_CTAG_ADDR"
+  - name: "PTP_ROIP_DESC_ADDR"
+WB_ACT:
+  - name: "WB_RGN0_OACT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "WB_RGN0_OACT_CTAG_ADDR"
+  - name: "WB_RGN1_OACT_ADDR"
+    args:
+    - name: "addr"
+      bits: [0,31]
+      default: 0
+  - name: "WB_RGN1_OACT_CTAG_ADDR"

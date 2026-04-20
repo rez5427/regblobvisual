@@ -1,0 +1,68 @@
+MPU0_ACT:
+  - name: MPU0_IACT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU0_BATCH_MATMUL_ICA_ADDR
+  - name: MPU0_IACT_CTAG_ADDR
+  - name: MPU0_UNB_ADDR
+MPU1_ACT:
+  - name: MPU1_IACT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: MPU1_BATCH_MATMUL_ICA_ADDR
+  - name: MPU1_IACT_CTAG_ADDR
+  - name: MPU1_UNB_ADDR
+ITP_ACT:
+  - name: ITP_ACC_INTP_DST_MCFGO
+  - name: ITP_ACC_DST_MCFGO1
+  - name: ITP_INTP_MCFG
+ITPA_ACT:
+  - name: ITPA_E_MUL_ACT_MCFG
+  - name: ITPA_E_ALU_ACT_MCFG
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+ITPB_ACT:
+  - name: ITPB_E_MUL_ACT_MCFG
+  - name: ITPB_E_ALU_ACT_MCFG
+ITPC_ACT:
+  - name: ITPC_E_MUL_ACT_MCFG
+  - name: ITPC_E_ALU_ACT_MCFG
+PTP_ACT:
+  - name: PTP_IACT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: PTP_CTAG_ADDR
+  - name: PTP_ROIP_DESC_ADDR
+WB_ACT:
+  - name: WB_RGN0_OACT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: WB_RGN0_OACT_CTAG_ADDR
+  - name: WB_RGN1_OACT_ADDR
+    args:
+      - name: addr
+        bits:
+          - 0
+          - 31
+        default: 0
+  - name: WB_RGN1_OACT_CTAG_ADDR
