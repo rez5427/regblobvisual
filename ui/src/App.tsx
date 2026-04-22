@@ -45,6 +45,7 @@ type RegisterEntry = {
   registerIndex: number
   offset: number
   fields: FieldSpec[]
+  isAlignmentReserved?: boolean
 }
 
 function normalizeBits(bits: number[] | undefined): { start: number; end: number } {
@@ -109,24 +110,60 @@ async function loadRegisterOffsetMap(): Promise<RegisterOffsetMap> {
 function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): RegisterEntry[] {
   const entries: RegisterEntry[] = []
   let registerIndex = 0
+  let previousMappedOffset: number | undefined
+
+  const pushReservedPaddingEntries = (groupName: string, startOffset: number, count: number) => {
+    for (let i = 0; i < count; i += 1) {
+      const offset = startOffset + i * 4
+      entries.push({
+        key: `${groupName}:reserved:${offset}`,
+        groupName,
+        registerName: `reserved_${offset.toString(16)}`,
+        registerIndex,
+        offset,
+        fields: [],
+        isAlignmentReserved: true,
+      })
+      registerIndex += 1
+    }
+  }
+
   for (const [groupName, registers] of Object.entries(groupSpec)) {
     if (!Array.isArray(registers)) {
       continue
     }
     for (const reg of registers) {
       const regObj = reg as RegisterSpec
+      const mappedOffset = offsetMap?.[String(regObj.name).toUpperCase()]
+      const hasMappedOffset = mappedOffset !== undefined
+      const resolvedOffset = hasMappedOffset ? mappedOffset : registerIndex * 4
+
+      // DescriptorBase has alignment padding between sections; represent small holes as reserved.
+      if (
+        hasMappedOffset &&
+        previousMappedOffset !== undefined &&
+        mappedOffset > previousMappedOffset + 4
+      ) {
+        const gapBytes = mappedOffset - (previousMappedOffset + 4)
+        const gapWords = gapBytes / 4
+        // Keep huge address jumps compact; only materialize likely alignment gaps.
+        if (Number.isInteger(gapWords) && gapWords > 0 && gapWords <= 16) {
+          pushReservedPaddingEntries(groupName, previousMappedOffset + 4, gapWords)
+        }
+      }
+
       entries.push({
         key: `${groupName}:${String(regObj.name)}:${registerIndex}`,
         groupName,
         registerName: String(regObj.name),
         registerIndex,
-        offset:
-          offsetMap?.[String(regObj.name).toUpperCase()] !== undefined
-            ? offsetMap[String(regObj.name).toUpperCase()]
-            : registerIndex * 4,
+        offset: resolvedOffset,
         fields: Array.isArray(regObj.args) ? regObj.args : [],
       })
       registerIndex += 1
+      if (hasMappedOffset) {
+        previousMappedOffset = mappedOffset
+      }
     }
   }
   return entries
@@ -780,6 +817,7 @@ function App() {
                     <Space size="middle" wrap className="register-header-main">
                       <Tag>{entry.groupName}</Tag>
                       <Text strong>{entry.registerName}</Text>
+                      {entry.isAlignmentReserved && <Tag color="default">reserved</Tag>}
                       <Text type="secondary">idx={entry.registerIndex}</Text>
                       <Text type="secondary">offset=0x{entry.offset.toString(16)}</Text>
                       {registerDiff && <Tag color="red">DIFF</Tag>}
@@ -803,19 +841,30 @@ function App() {
                     <Card size="small" className={registerDiff ? 'field-diff-card' : undefined}>
                       <Flex justify="space-between" align="center" wrap gap={12}>
                         <Space>
-                          <Text type="secondary">无位域定义，直接编辑 32-bit 原值</Text>
+                          {entry.isAlignmentReserved ? (
+                            <>
+                              <Tag color="default">reserved</Tag>
+                              <Text type="secondary">对齐填充槽位（只读展示）</Text>
+                            </>
+                          ) : (
+                            <Text type="secondary">无位域定义，按 32-bit 原值编辑</Text>
+                          )}
                           {registerDiff && <Tag color="red">DIFF</Tag>}
                         </Space>
                         <Space className="field-ab-values">
                           <Text type="secondary">A</Text>
-                          <InputNumber
-                            min={0}
-                            max={0xffffffff}
-                            value={wordA}
-                            parser={(v) => parseMaybeHexInput(v)}
-                            formatter={(v) => formatHex32(toSafeUint(v, 0xffffffff))}
-                            onChange={(next) => updateRegisterWordValue(index, next)}
-                          />
+                          {entry.isAlignmentReserved ? (
+                            <Tag className="register-ab-value-tag">{formatHex32(wordA)}</Tag>
+                          ) : (
+                            <InputNumber
+                              min={0}
+                              max={0xffffffff}
+                              value={wordA}
+                              parser={(v) => parseMaybeHexInput(v)}
+                              formatter={(v) => formatHex32(toSafeUint(v, 0xffffffff))}
+                              onChange={(next) => updateRegisterWordValue(index, next)}
+                            />
+                          )}
                           {binaryBytesB && (
                             <>
                               <Text type="secondary">B</Text>
@@ -857,6 +906,7 @@ function App() {
                                   max={max}
                                   value={fieldValueA}
                                   parser={(v) => parseMaybeHexInput(v)}
+                                  formatter={(v) => formatHex32(toSafeUint(v, max))}
                                   onChange={(next) =>
                                     updateFieldValue(index, field, toSafeUint(next, max))
                                   }
@@ -864,7 +914,9 @@ function App() {
                                 {binaryBytesB && (
                                   <>
                                     <Text type="secondary">B</Text>
-                                    <Tag color={fieldDiff ? 'red' : 'default'}>{fieldValueB}</Tag>
+                                    <Tag color={fieldDiff ? 'red' : 'default'}>
+                                      {formatHex32(fieldValueB)}
+                                    </Tag>
                                   </>
                                 )}
                               </Space>
