@@ -175,6 +175,64 @@ function formatHex32(value: number): string {
   return `0x${(value >>> 0).toString(16).padStart(8, '0')}`
 }
 
+const LOCAL_STATE_KEY = 'regblobvisual:lastState:v1'
+
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize)
+    binary += String.fromCharCode(...chunk)
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function base64UrlToBytes(input: string): Uint8Array {
+  const base64 = input.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = base64 + '==='.slice((base64.length + 3) % 4)
+  const binary = atob(padded)
+  const out = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    out[i] = binary.charCodeAt(i)
+  }
+  return out
+}
+
+function encodeSharePayload(payload: Record<string, unknown>): string {
+  const json = JSON.stringify(payload)
+  const bytes = new TextEncoder().encode(json)
+  return bytesToBase64Url(bytes)
+}
+
+function decodeSharePayload(raw: string): Record<string, unknown> {
+  const bytes = base64UrlToBytes(raw)
+  const text = new TextDecoder().decode(bytes)
+  const parsed = JSON.parse(text)
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('分享链接内容无效')
+  }
+  return parsed as Record<string, unknown>
+}
+
+async function computeBlobHash(bytes: Uint8Array): Promise<string> {
+  if (globalThis.crypto?.subtle) {
+    const digestInput = new Uint8Array(bytes).buffer
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', digestInput)
+    const hashHex = Array.from(new Uint8Array(digest))
+      .map((v) => v.toString(16).padStart(2, '0'))
+      .join('')
+    return hashHex
+  }
+
+  // Fallback for older/insecure contexts where subtle crypto is unavailable.
+  let hash = 0x811c9dc5
+  for (let i = 0; i < bytes.length; i += 1) {
+    hash ^= bytes[i]
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return `fnv1a_${hash.toString(16).padStart(8, '0')}`
+}
+
 function parseMaybeHexInput(raw: string | undefined): number {
   if (!raw) {
     return 0
@@ -208,6 +266,9 @@ function App() {
   const [wordValuesA, setWordValuesA] = useState<number[]>([])
   const [wordValuesB, setWordValuesB] = useState<number[]>([])
   const [fileNameA, setFileNameA] = useState<string>('edited_blob.bin')
+  const [fileHashA, setFileHashA] = useState<string>()
+  const [fileHashB, setFileHashB] = useState<string>()
+  const [shareUrl, setShareUrl] = useState<string>()
   const [blobTypes, setBlobTypes] = useState<BlobTypeMap>({
     dma: {},
     activation: {},
@@ -243,6 +304,107 @@ function App() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash.startsWith('#s=')) {
+      return
+    }
+    try {
+      const encoded = hash.slice(3)
+      const payload = decodeSharePayload(encoded)
+      const payloadBlobType = payload.t
+      const payloadEndian = payload.e
+      const payloadA = payload.a
+      const payloadB = payload.b
+      const payloadNameA = payload.nA
+
+      if (
+        (payloadBlobType === 'dma' ||
+          payloadBlobType === 'activation' ||
+          payloadBlobType === 'ctrl' ||
+          payloadBlobType === 'parameter') &&
+        (payloadEndian === 'little' || payloadEndian === 'big') &&
+        typeof payloadA === 'string'
+      ) {
+        setBlobTypeName(payloadBlobType)
+        setEndianness(payloadEndian)
+        setBinaryBytesA(base64UrlToBytes(payloadA))
+        setFileNameA(typeof payloadNameA === 'string' ? payloadNameA : 'shared_blob_a_edited.bin')
+        if (typeof payloadB === 'string' && payloadB.length > 0) {
+          setBinaryBytesB(base64UrlToBytes(payloadB))
+        }
+        setShareUrl(window.location.href)
+        message.success('已从分享链接恢复 A/B blob')
+      }
+    } catch (error) {
+      message.error(`分享链接解析失败: ${(error as Error).message}`)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(LOCAL_STATE_KEY)
+      if (!cached) {
+        return
+      }
+      const payload = JSON.parse(cached) as Record<string, unknown>
+      if (!payload || typeof payload !== 'object') {
+        return
+      }
+      const payloadBlobType = payload.t
+      const payloadEndian = payload.e
+      const payloadA = payload.a
+      const payloadB = payload.b
+      if (
+        (payloadBlobType === 'dma' ||
+          payloadBlobType === 'activation' ||
+          payloadBlobType === 'ctrl' ||
+          payloadBlobType === 'parameter') &&
+        (payloadEndian === 'little' || payloadEndian === 'big')
+      ) {
+        setBlobTypeName(payloadBlobType)
+        setEndianness(payloadEndian)
+      }
+      if (typeof payloadA === 'string' && payloadA.length > 0) {
+        setBinaryBytesA(base64UrlToBytes(payloadA))
+      }
+      if (typeof payloadB === 'string' && payloadB.length > 0) {
+        setBinaryBytesB(base64UrlToBytes(payloadB))
+      }
+      if (typeof payload.nA === 'string') {
+        setFileNameA(payload.nA)
+      }
+      if (typeof payload.hA === 'string') {
+        setFileHashA(payload.hA)
+      }
+      if (typeof payload.hB === 'string') {
+        setFileHashB(payload.hB)
+      }
+    } catch {
+      // ignore invalid cache payload
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!binaryBytesA && !binaryBytesB) {
+      return
+    }
+    const payload = {
+      t: blobTypeName,
+      e: endianness,
+      a: binaryBytesA ? bytesToBase64Url(binaryBytesA) : '',
+      b: binaryBytesB ? bytesToBase64Url(binaryBytesB) : '',
+      nA: fileNameA,
+      hA: fileHashA ?? '',
+      hB: fileHashB ?? '',
+    }
+    try {
+      localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(payload))
+    } catch {
+      // local cache may fail due to browser quota limits
+    }
+  }, [binaryBytesA, binaryBytesB, blobTypeName, endianness, fileNameA, fileHashA, fileHashB])
 
   const currentGroupSpec = useMemo(() => {
     return blobTypes[blobTypeName]
@@ -288,13 +450,16 @@ function App() {
       }
       const arrayBuffer = await selected.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)
+      const hash = await computeBlobHash(bytes)
       if (target === 'A') {
         setBinaryBytesA(bytes)
         setFileNameA(selected.name.replace(/(\.\w+)?$/, `_${blobTypeName}_edited.bin`))
+        setFileHashA(hash)
       } else {
         setBinaryBytesB(bytes)
+        setFileHashB(hash)
       }
-      message.success(`Blob ${target} 已加载，大小 ${bytes.length} bytes`)
+      message.success(`Blob ${target} 已加载，大小 ${bytes.length} bytes，hash=${hash.slice(0, 12)}...`)
     }
     input.click()
   }
@@ -373,6 +538,42 @@ function App() {
       return count + (aWord !== bWord ? 1 : 0)
     }, 0)
   }, [binaryBytesB, registerEntries, wordValuesA, wordValuesB])
+
+  const buildShareUrl = () => {
+    if (!binaryBytesA) {
+      message.warning('请先加载 Blob A')
+      return
+    }
+    const payload = {
+      v: 1,
+      t: blobTypeName,
+      e: endianness,
+      a: bytesToBase64Url(binaryBytesA),
+      b: binaryBytesB ? bytesToBase64Url(binaryBytesB) : '',
+      nA: fileNameA,
+    }
+    const encoded = encodeSharePayload(payload)
+    const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`
+    setShareUrl(url)
+    if (url.length > 7000) {
+      message.warning('分享链接较长，部分聊天工具可能截断')
+    } else {
+      message.success('已生成分享链接')
+    }
+  }
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) {
+      message.warning('请先生成分享链接')
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      message.success('分享链接已复制')
+    } catch {
+      message.error('复制失败，请手动复制输入框内容')
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -473,7 +674,32 @@ function App() {
           {binaryBytesA && <Tag color="gold">Blob A: {binaryBytesA.length} bytes</Tag>}
           {binaryBytesB && <Tag color="volcano">Blob B: {binaryBytesB.length} bytes</Tag>}
           {binaryBytesB && <Tag color="magenta">差异寄存器: {changedRegisterCount}</Tag>}
+          {fileHashA && (
+            <Tag color="gold">
+              A-hash: {fileHashA.slice(0, 12)}
+              ...
+            </Tag>
+          )}
+          {fileHashB && (
+            <Tag color="volcano">
+              B-hash: {fileHashB.slice(0, 12)}
+              ...
+            </Tag>
+          )}
         </div>
+        <Flex className="share-row" wrap gap={8} align="center">
+          <Button onClick={buildShareUrl} disabled={!binaryBytesA}>
+            生成分享链接
+          </Button>
+          <Button onClick={copyShareUrl} disabled={!shareUrl}>
+            复制链接
+          </Button>
+          {shareUrl && (
+            <Text copyable={{ text: shareUrl }} className="share-url-text">
+              {shareUrl}
+            </Text>
+          )}
+        </Flex>
       </Card>
 
       {registerEntries.length > 0 && !binaryBytesA && (
@@ -521,15 +747,33 @@ function App() {
             return {
               key: entry.key,
               label: (
-                <Space size="middle" wrap>
-                  <Tag>{entry.groupName}</Tag>
-                  <Text strong>{entry.registerName}</Text>
-                  <Text type="secondary">idx={entry.registerIndex}</Text>
-                  <Text type="secondary">offset=0x{entry.offset.toString(16)}</Text>
-                  <Tag color="geekblue">A: {formatHex32(wordA)}</Tag>
-                  {binaryBytesB && <Tag color="volcano">B: {formatHex32(wordB)}</Tag>}
-                  {registerDiff && <Tag color="red">DIFF</Tag>}
-                </Space>
+                <div
+                  className={
+                    registerDiff
+                      ? 'register-header-frame register-header-diff-frame'
+                      : 'register-header-frame'
+                  }
+                >
+                  <div className="register-header-content">
+                    <Space size="middle" wrap className="register-header-main">
+                      <Tag>{entry.groupName}</Tag>
+                      <Text strong>{entry.registerName}</Text>
+                      <Text type="secondary">idx={entry.registerIndex}</Text>
+                      <Text type="secondary">offset=0x{entry.offset.toString(16)}</Text>
+                      {registerDiff && <Tag color="red">DIFF</Tag>}
+                    </Space>
+                    <Space className="register-ab-values" size="small" wrap>
+                      <Tag color="geekblue" className="register-ab-value-tag">
+                        A: {formatHex32(wordA)}
+                      </Tag>
+                      {binaryBytesB && (
+                        <Tag color="volcano" className="register-ab-value-tag">
+                          B: {formatHex32(wordB)}
+                        </Tag>
+                      )}
+                    </Space>
+                  </div>
+                </div>
               ),
               children: (
                 <div>
@@ -540,7 +784,7 @@ function App() {
                           <Text type="secondary">无位域定义，直接编辑 32-bit 原值</Text>
                           {registerDiff && <Tag color="red">DIFF</Tag>}
                         </Space>
-                        <Space>
+                        <Space className="field-ab-values">
                           <Text type="secondary">A</Text>
                           <InputNumber
                             min={0}
@@ -584,7 +828,7 @@ function App() {
                                 <Text type="secondary">max={max}</Text>
                                 {fieldDiff && <Tag color="red">DIFF</Tag>}
                               </Space>
-                              <Space>
+                              <Space className="field-ab-values">
                                 <Text type="secondary">A</Text>
                                 <InputNumber
                                   min={0}

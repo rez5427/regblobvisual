@@ -8,6 +8,15 @@
   margin-top: 12px;
 }
 
+.share-row {
+  margin-top: 12px;
+}
+
+.share-url-text {
+  max-width: 100%;
+  word-break: break-all;
+}
+
 .app-alert {
   margin-top: 16px;
 }
@@ -20,6 +29,39 @@
   margin-top: 16px;
 }
 
+.register-header-frame {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.register-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.register-header-main {
+  flex: 1;
+}
+
+.register-ab-values {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.register-ab-value-tag {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.register-header-diff-frame {
+  border-color: #ff4d4f;
+  background: #fff1f0;
+}
+
 .definitions-loading {
   display: flex;
   justify-content: center;
@@ -29,4 +71,18 @@
 .field-diff-card {
   border-color: #ffccc7;
   background: #fff2f0;
+}
+
+.field-ab-values {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.field-ab-values .ant-input-number {
+  min-width: 164px;
+}
+
+.field-ab-values .ant-tag {
+  font-size: 14px;
+  font-weight: 600;
 }
