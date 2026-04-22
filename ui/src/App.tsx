@@ -65,6 +65,37 @@ function parseGroupSpecFromYaml(content: string, label: string): GroupSpec {
   return parsed as GroupSpec
 }
 
+function classifyGroupName(groupName: string): BlobTypeName {
+  const upper = groupName.toUpperCase()
+  if (upper === 'DMA') {
+    return 'dma'
+  }
+  if (upper.endsWith('_PARAM')) {
+    return 'parameter'
+  }
+  if (upper.endsWith('_ACT')) {
+    return 'activation'
+  }
+  return 'ctrl'
+}
+
+function splitRegistersToBlobTypes(groupSpec: GroupSpec): BlobTypeMap {
+  const result: BlobTypeMap = {
+    dma: {},
+    activation: {},
+    ctrl: {},
+    parameter: {},
+  }
+  for (const [groupName, registers] of Object.entries(groupSpec)) {
+    if (!Array.isArray(registers)) {
+      continue
+    }
+    const bucket = classifyGroupName(groupName)
+    result[bucket][groupName] = registers
+  }
+  return result
+}
+
 async function fetchYamlText(url: string, label: string): Promise<string> {
   const response = await fetch(url, { cache: 'no-store' })
   if (!response.ok) {
@@ -78,17 +109,9 @@ async function fetchYamlText(url: string, label: string): Promise<string> {
 }
 
 async function loadBlobTypeDefinitions(): Promise<BlobTypeMap> {
-  const dmaText = await fetchYamlText('/defs/DMA.yaml', 'DMA.yaml')
-  const activationText = await fetchYamlText('/defs/Activation.yaml', 'Activation.yaml')
-  const controlText = await fetchYamlText('/defs/Control.yaml', 'Control.yaml')
-  const parameterText = await fetchYamlText('/defs/Parameter.yaml', 'Parameter.yaml')
-
-  return {
-    dma: parseGroupSpecFromYaml(dmaText, 'DMA.yaml'),
-    activation: parseGroupSpecFromYaml(activationText, 'Activation.yaml'),
-    ctrl: parseGroupSpecFromYaml(controlText, 'Control.yaml'),
-    parameter: parseGroupSpecFromYaml(parameterText, 'Parameter.yaml'),
-  }
+  const registersText = await fetchYamlText('/defs/registers.yaml', 'registers.yaml')
+  const fullGroupSpec = parseGroupSpecFromYaml(registersText, 'registers.yaml')
+  return splitRegistersToBlobTypes(fullGroupSpec)
 }
 
 type SectionPlan = {

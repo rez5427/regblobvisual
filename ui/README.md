@@ -135,19 +135,23 @@ npm run preview -- --host 0.0.0.0 --port 4173
 
 ## 6) YAML 说明
 
-运行时读取以下 4 个文件：
+当前只使用 **一个源文件**：
 
-- `DMA.yaml`
-- `Activation.yaml`
-- `Control.yaml`
-- `Parameter.yaml`
+- `/home/rez/workbench/cix/cnnc/cxn/registers.yaml`
 
-`sync-yaml` 规则：
+`sync-yaml` 会把它同步到：
 
-- 文件存在且非空：直接使用
-- 文件为空或缺失：尝试从 `registers.yaml` 自动拆分生成
+- `../registers.yaml`（仓库根目录）
+- `ui/public/defs/registers.yaml`（前端运行时读取）
 
-每个 YAML 顶层是寄存器分组，分组下是寄存器数组，例如：
+前端在运行时会从这个 `registers.yaml` 自动拆分出：
+
+- `dma`
+- `activation`
+- `ctrl`
+- `parameter`
+
+`registers.yaml` 顶层是寄存器分组，分组下是寄存器数组，例如：
 
 ```yaml
 DMA:

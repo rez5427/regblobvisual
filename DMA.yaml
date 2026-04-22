@@ -1,73 +1,49 @@
 DMA:
-  - name: '0'
+  - name: "0"
     args:
-      - name: ext_stride_l
-        bits:
-          - 0
-          - 15
+      - name: "ext_stride_l"
+        bits: [0,15]
         default: 0
-      - name: ext_width
-        bits:
-          - 16
-          - 31
+      - name: "ext_width"
+        bits: [16,31]
         default: 0
-  - name: '1'
+  - name: "1"
     args:
-      - name: ext_trans_size
-        bits:
-          - 0
-          - 23
+      - name: "ext_trans_size"
+        bits: [0,23]
         default: 0
-      - name: ext_trans_num
-        bits:
-          - 24
-          - 31
+      - name: "ext_trans_num"
+        bits: [24,31]
         default: 0
-  - name: '2'
+  - name: "2"
     args:
-      - name: ext_gap
-        bits:
-          - 0
-          - 23
+      - name: "ext_gap"
+        bits: [0,23]
         default: 0
-      - name: ext_stride_h
-        bits:
-          - 24
-          - 31
+      - name: "ext_stride_h"
+        bits: [24,31]
         default: 0
-  - name: '3'
+  - name: "3"
     args:
-      - name: int_gap
-        bits:
-          - 0
-          - 23
+      - name: "int_gap"
+        bits: [0,23]
         default: 0
-      - name: int_stride_h
-        bits:
-          - 24
-          - 31
+      - name: "int_stride_h"
+        bits: [24,31]
         default: 0
-  - name: '4'
+  - name: "4"
     args:
-      - name: int_stride_l
-        bits:
-          - 0
-          - 15
+      - name: "int_stride_l"
+        bits: [0,15]
         default: 0
-      - name: int_width
-        bits:
-          - 16
-          - 31
+      - name: "int_width"
+        bits: [16,31]
         default: 0
-  - name: '5'
+  - name: "5"
     args:
-      - name: int_trans_size
-        bits:
-          - 0
-          - 23
+      - name: "int_trans_size"
+        bits: [0,23]
         default: 0
-      - name: int_trans_num
-        bits:
-          - 24
-          - 31
+      - name: "int_trans_num"
+        bits: [24,31]
         default: 0
