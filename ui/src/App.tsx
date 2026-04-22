@@ -111,6 +111,7 @@ function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): 
   const entries: RegisterEntry[] = []
   let registerIndex = 0
   let previousMappedOffset: number | undefined
+  let previousResolvedOffset: number | undefined
 
   const pushReservedPaddingEntries = (groupName: string, startOffset: number, count: number) => {
     for (let i = 0; i < count; i += 1) {
@@ -134,9 +135,15 @@ function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): 
     }
     for (const reg of registers) {
       const regObj = reg as RegisterSpec
+      const regNameUpper = String(regObj.name).toUpperCase()
+      const isUnknownPlaceholder = regNameUpper === 'UNKNOW' || regNameUpper === 'UNKNOWN'
       const mappedOffset = offsetMap?.[String(regObj.name).toUpperCase()]
       const hasMappedOffset = mappedOffset !== undefined
-      const resolvedOffset = hasMappedOffset ? mappedOffset : registerIndex * 4
+      const resolvedOffset = hasMappedOffset
+        ? mappedOffset
+        : previousResolvedOffset !== undefined
+          ? previousResolvedOffset + 4
+          : registerIndex * 4
 
       // DescriptorBase has alignment padding between sections; represent small holes as reserved.
       if (
@@ -159,8 +166,10 @@ function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): 
         registerIndex,
         offset: resolvedOffset,
         fields: Array.isArray(regObj.args) ? regObj.args : [],
+        isAlignmentReserved: isUnknownPlaceholder,
       })
       registerIndex += 1
+      previousResolvedOffset = resolvedOffset
       if (hasMappedOffset) {
         previousMappedOffset = mappedOffset
       }
