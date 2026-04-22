@@ -122,7 +122,6 @@ function main() {
 try {
   main()
 } catch (error) {
-  const message = error && error.message ? error.message : String(error)
-  process.stderr.write(`${message}\n`)
+  process.stderr.write(`${String(error?.message || error)}\n`)
   process.exit(1)
 }

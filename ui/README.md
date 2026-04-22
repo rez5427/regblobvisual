@@ -119,83 +119,17 @@ sudo systemctl reload nginx
 
 ---
 
-## 5) 用 systemctl 常驻（你要的方式）
+## 5) 备用方案：Node 预览服务 + systemd（不推荐生产）
 
-如果你想把前端进程交给 `systemctl` 管理，可以用 `vite preview` 挂成服务。
-
-### 5.1 创建系统用户（可选）
-
-```bash
-sudo useradd -r -s /usr/sbin/nologin regblob || true
-```
-
-### 5.2 放置服务文件
-
-仓库里提供了模板：`deploy/regblobvisual.service.example`。  
-复制到系统目录并按你的路径修改：
+如果你暂时不配 Nginx，也可以跑 `vite preview`：
 
 ```bash
 cd /path/to/regblobvisual/ui
-sudo cp deploy/regblobvisual.service.example /etc/systemd/system/regblobvisual.service
-sudo nano /etc/systemd/system/regblobvisual.service
-```
-
-你至少需要改这几项：
-
-- `User` / `Group`（比如 `regblob` 或你的登录用户）
-- `WorkingDirectory`（改成你的真实项目路径）
-- `ExecStart`（默认 `npm run preview -- --host 0.0.0.0 --port 4173`）
-
-### 5.3 启用并启动
-
-```bash
-cd /path/to/regblobvisual/ui
-npm install
 npm run build
-sudo systemctl daemon-reload
-sudo systemctl enable regblobvisual
-sudo systemctl start regblobvisual
+npm run preview -- --host 0.0.0.0 --port 4173
 ```
 
-### 5.4 查看状态与日志
-
-```bash
-sudo systemctl status regblobvisual
-sudo journalctl -u regblobvisual -f
-```
-
-### 5.5 更新后重启
-
-```bash
-cd /path/to/regblobvisual/ui
-git pull
-npm install
-npm run build
-sudo systemctl restart regblobvisual
-```
-
-### 5.6（可选）Nginx 反代到 systemd 服务
-
-如果服务监听在 `127.0.0.1:4173` 或 `0.0.0.0:4173`，可用 Nginx 反代：
-
-```nginx
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://127.0.0.1:4173;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-> 说明：纯静态页面最佳实践还是“`npm run build` + Nginx 直接托管 `dist`”。  
-> 你如果明确要 `systemctl`，上面这套可以稳定运行。
+但正式生产还是建议走 Nginx 静态托管。
 
 ---
 
