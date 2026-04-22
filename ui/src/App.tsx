@@ -36,7 +36,6 @@ type RegisterSpec = {
 type GroupSpec = Record<string, RegisterSpec[]>
 type BlobTypeName = 'dma' | 'activation' | 'ctrl' | 'parameter'
 type BlobTypeMap = Record<BlobTypeName, GroupSpec>
-type RegisterOffsetMap = Record<string, number>
 
 type RegisterEntry = {
   key: string
@@ -92,30 +91,54 @@ async function loadBlobTypeDefinitions(): Promise<BlobTypeMap> {
   }
 }
 
-async function loadRegisterOffsetMap(): Promise<RegisterOffsetMap> {
-  const response = await fetch('/defs/aite-reg-map.json', { cache: 'no-store' })
-  if (!response.ok) {
-    throw new Error(`aite-reg-map.json: 无法加载 (${response.status} ${response.statusText})`)
-  }
-  const parsed = (await response.json()) as Record<string, unknown>
-  const map: RegisterOffsetMap = {}
-  for (const [k, v] of Object.entries(parsed)) {
-    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
-      map[k] = v
-    }
-  }
-  return map
+type SectionPlan = {
+  groupName: string
+  align: number
+  withCsrac?: boolean
 }
 
-function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): RegisterEntry[] {
+const CTRL_SECTION_PLAN: SectionPlan[] = [
+  { groupName: 'HEAD_CTRL', align: 8 },
+  { groupName: 'AITE_CTRL', align: 8, withCsrac: true },
+  { groupName: 'MPU_TWIN_CTRL', align: 8, withCsrac: true },
+  { groupName: 'MPU0_CTRL', align: 8, withCsrac: true },
+  { groupName: 'MPU1_CTRL', align: 8, withCsrac: true },
+  { groupName: 'ITP_CTRL', align: 8, withCsrac: true },
+  { groupName: 'ITPA_CTRL', align: 8, withCsrac: true },
+  { groupName: 'ITPB_CTRL', align: 8, withCsrac: true },
+  { groupName: 'PTP_CTRL', align: 8, withCsrac: true },
+  { groupName: 'WB_RGN0_CTRL', align: 8, withCsrac: true },
+  { groupName: 'WB_RGN1_CTRL', align: 8, withCsrac: true },
+  { groupName: 'UNB_CTRL', align: 8, withCsrac: true },
+]
+
+const ACT_SECTION_PLAN: SectionPlan[] = [
+  { groupName: 'MPU0_ACT', align: 8 },
+  { groupName: 'MPU1_ACT', align: 8 },
+  { groupName: 'ITP_ACT', align: 4 },
+  { groupName: 'ITPA_ACT', align: 4 },
+  { groupName: 'ITPB_ACT', align: 4 },
+  { groupName: 'ITPC_ACT', align: 4 },
+  { groupName: 'PTP_ACT', align: 8 },
+  { groupName: 'WB_ACT', align: 8 },
+]
+
+const PARAM_SECTION_PLAN: SectionPlan[] = [
+  { groupName: 'MPU0_PARAM', align: 8 },
+  { groupName: 'MPU1_PARAM', align: 8 },
+  { groupName: 'ITPA_PARAM', align: 8 },
+  { groupName: 'ITPB_PARAM', align: 8 },
+  { groupName: 'ITPC_PARAM', align: 8 },
+  { groupName: 'PTP_PARAM', align: 8 },
+]
+
+function flattenRegistersByPlan(groupSpec: GroupSpec, plan: SectionPlan[]): RegisterEntry[] {
   const entries: RegisterEntry[] = []
   let registerIndex = 0
-  let previousMappedOffset: number | undefined
-  let previousResolvedOffset: number | undefined
 
-  const pushReservedPaddingEntries = (groupName: string, startOffset: number, count: number) => {
+  const pushReservedPaddingEntries = (groupName: string, count: number) => {
     for (let i = 0; i < count; i += 1) {
-      const offset = startOffset + i * 4
+      const offset = registerIndex * 4
       entries.push({
         key: `${groupName}:reserved:${offset}`,
         groupName,
@@ -129,53 +152,71 @@ function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): 
     }
   }
 
-  for (const [groupName, registers] of Object.entries(groupSpec)) {
+  const appendSection = (groupName: string, registers: RegisterSpec[], align: number) => {
     if (!Array.isArray(registers)) {
-      continue
+      return
     }
     for (const reg of registers) {
       const regObj = reg as RegisterSpec
       const regNameUpper = String(regObj.name).toUpperCase()
       const isUnknownPlaceholder = regNameUpper === 'UNKNOW' || regNameUpper === 'UNKNOWN'
-      const mappedOffset = offsetMap?.[String(regObj.name).toUpperCase()]
-      const hasMappedOffset = mappedOffset !== undefined
-      const resolvedOffset = hasMappedOffset
-        ? mappedOffset
-        : previousResolvedOffset !== undefined
-          ? previousResolvedOffset + 4
-          : registerIndex * 4
-
-      // DescriptorBase has alignment padding between sections; represent small holes as reserved.
-      if (
-        hasMappedOffset &&
-        previousMappedOffset !== undefined &&
-        mappedOffset > previousMappedOffset + 4
-      ) {
-        const gapBytes = mappedOffset - (previousMappedOffset + 4)
-        const gapWords = gapBytes / 4
-        // Keep huge address jumps compact; only materialize likely alignment gaps.
-        if (Number.isInteger(gapWords) && gapWords > 0 && gapWords <= 16) {
-          pushReservedPaddingEntries(groupName, previousMappedOffset + 4, gapWords)
-        }
-      }
 
       entries.push({
         key: `${groupName}:${String(regObj.name)}:${registerIndex}`,
         groupName,
         registerName: String(regObj.name),
         registerIndex,
-        offset: resolvedOffset,
+        offset: registerIndex * 4,
         fields: Array.isArray(regObj.args) ? regObj.args : [],
         isAlignmentReserved: isUnknownPlaceholder,
       })
       registerIndex += 1
-      previousResolvedOffset = resolvedOffset
-      if (hasMappedOffset) {
-        previousMappedOffset = mappedOffset
-      }
+    }
+
+    const rem = registerIndex % align
+    if (rem > 0) {
+      pushReservedPaddingEntries(groupName, align - rem)
     }
   }
+
+  for (const section of plan) {
+    if (section.withCsrac) {
+      const csrac = groupSpec.CSRAC_CTRL
+      if (Array.isArray(csrac) && csrac.length > 0) {
+        appendSection('CSRAC_CTRL', csrac, 1)
+      }
+    }
+    const sectionRegisters = groupSpec[section.groupName]
+    if (Array.isArray(sectionRegisters) && sectionRegisters.length > 0) {
+      appendSection(section.groupName, sectionRegisters, section.align)
+    }
+  }
+
   return entries
+}
+
+function flattenRegisters(blobTypeName: BlobTypeName, groupSpec: GroupSpec): RegisterEntry[] {
+  if (blobTypeName === 'dma') {
+    const dma = groupSpec.DMA
+    if (Array.isArray(dma)) {
+      return flattenRegistersByPlan(groupSpec, [{ groupName: 'DMA', align: 1 }])
+    }
+  }
+  if (blobTypeName === 'activation') {
+    return flattenRegistersByPlan(groupSpec, ACT_SECTION_PLAN)
+  }
+  if (blobTypeName === 'ctrl') {
+    return flattenRegistersByPlan(groupSpec, CTRL_SECTION_PLAN)
+  }
+  if (blobTypeName === 'parameter') {
+    return flattenRegistersByPlan(groupSpec, PARAM_SECTION_PLAN)
+  }
+
+  // Fallback: keep original order if no known plan is available.
+  return flattenRegistersByPlan(
+    groupSpec,
+    Object.keys(groupSpec).map((groupName) => ({ groupName, align: 1 })),
+  )
 }
 
 function readWord(bytes: Uint8Array, offset: number, endianness: Endianness): number {
@@ -340,7 +381,6 @@ function App() {
     ctrl: {},
     parameter: {},
   })
-  const [registerOffsetMap, setRegisterOffsetMap] = useState<RegisterOffsetMap>({})
   const [definitionsLoading, setDefinitionsLoading] = useState(true)
   const [definitionsError, setDefinitionsError] = useState<string>()
 
@@ -351,10 +391,8 @@ function App() {
       setDefinitionsError(undefined)
       try {
         const next = await loadBlobTypeDefinitions()
-        const offsetMap = await loadRegisterOffsetMap()
         if (!cancelled) {
           setBlobTypes(next)
-          setRegisterOffsetMap(offsetMap)
         }
       } catch (error) {
         if (!cancelled) {
@@ -479,8 +517,8 @@ function App() {
   }, [blobTypeName, blobTypes])
 
   const registerEntries = useMemo(
-    () => flattenRegisters(currentGroupSpec, registerOffsetMap),
-    [currentGroupSpec, registerOffsetMap],
+    () => flattenRegisters(blobTypeName, currentGroupSpec),
+    [blobTypeName, currentGroupSpec],
   )
 
   const expectedSize = registerEntries.length * 4
