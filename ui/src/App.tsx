@@ -36,6 +36,7 @@ type RegisterSpec = {
 type GroupSpec = Record<string, RegisterSpec[]>
 type BlobTypeName = 'dma' | 'activation' | 'ctrl' | 'parameter'
 type BlobTypeMap = Record<BlobTypeName, GroupSpec>
+type RegisterOffsetMap = Record<string, number>
 
 type RegisterEntry = {
   key: string
@@ -90,7 +91,22 @@ async function loadBlobTypeDefinitions(): Promise<BlobTypeMap> {
   }
 }
 
-function flattenRegisters(groupSpec: GroupSpec): RegisterEntry[] {
+async function loadRegisterOffsetMap(): Promise<RegisterOffsetMap> {
+  const response = await fetch('/defs/aite-reg-map.json', { cache: 'no-store' })
+  if (!response.ok) {
+    throw new Error(`aite-reg-map.json: 无法加载 (${response.status} ${response.statusText})`)
+  }
+  const parsed = (await response.json()) as Record<string, unknown>
+  const map: RegisterOffsetMap = {}
+  for (const [k, v] of Object.entries(parsed)) {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
+      map[k] = v
+    }
+  }
+  return map
+}
+
+function flattenRegisters(groupSpec: GroupSpec, offsetMap?: RegisterOffsetMap): RegisterEntry[] {
   const entries: RegisterEntry[] = []
   let registerIndex = 0
   for (const [groupName, registers] of Object.entries(groupSpec)) {
@@ -104,7 +120,10 @@ function flattenRegisters(groupSpec: GroupSpec): RegisterEntry[] {
         groupName,
         registerName: String(regObj.name),
         registerIndex,
-        offset: registerIndex * 4,
+        offset:
+          offsetMap?.[String(regObj.name).toUpperCase()] !== undefined
+            ? offsetMap[String(regObj.name).toUpperCase()]
+            : registerIndex * 4,
         fields: Array.isArray(regObj.args) ? regObj.args : [],
       })
       registerIndex += 1
@@ -275,6 +294,7 @@ function App() {
     ctrl: {},
     parameter: {},
   })
+  const [registerOffsetMap, setRegisterOffsetMap] = useState<RegisterOffsetMap>({})
   const [definitionsLoading, setDefinitionsLoading] = useState(true)
   const [definitionsError, setDefinitionsError] = useState<string>()
 
@@ -285,8 +305,10 @@ function App() {
       setDefinitionsError(undefined)
       try {
         const next = await loadBlobTypeDefinitions()
+        const offsetMap = await loadRegisterOffsetMap()
         if (!cancelled) {
           setBlobTypes(next)
+          setRegisterOffsetMap(offsetMap)
         }
       } catch (error) {
         if (!cancelled) {
@@ -411,8 +433,8 @@ function App() {
   }, [blobTypeName, blobTypes])
 
   const registerEntries = useMemo(
-    () => flattenRegisters(currentGroupSpec),
-    [currentGroupSpec],
+    () => flattenRegisters(currentGroupSpec, registerOffsetMap),
+    [currentGroupSpec, registerOffsetMap],
   )
 
   const expectedSize = registerEntries.length * 4
