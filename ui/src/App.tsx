@@ -7,14 +7,16 @@ import {
   Divider,
   Flex,
   InputNumber,
+  Modal,
   Select,
   Space,
   Spin,
   Tag,
   Typography,
+  Upload,
   message,
 } from 'antd'
-import { UploadOutlined } from '@ant-design/icons'
+import { InboxOutlined, UploadOutlined } from '@ant-design/icons'
 import YAML from 'js-yaml'
 import './App.css'
 
@@ -34,8 +36,10 @@ type RegisterSpec = {
 }
 
 type GroupSpec = Record<string, RegisterSpec[]>
-type BlobTypeName = 'dma' | 'activation' | 'ctrl' | 'parameter'
+type BaseBlobTypeName = 'dma' | 'activation' | 'ctrl' | 'parameter'
+type BlobTypeName = BaseBlobTypeName | 'desc'
 type BlobTypeMap = Record<BlobTypeName, GroupSpec>
+type DescSegmentBlobType = Exclude<BaseBlobTypeName, 'dma'>
 
 type RegisterEntry = {
   key: string
@@ -65,7 +69,7 @@ function parseGroupSpecFromYaml(content: string, label: string): GroupSpec {
   return parsed as GroupSpec
 }
 
-function classifyGroupName(groupName: string): BlobTypeName {
+function classifyGroupName(groupName: string): BaseBlobTypeName {
   const upper = groupName.toUpperCase()
   if (upper === 'DMA') {
     return 'dma'
@@ -79,8 +83,8 @@ function classifyGroupName(groupName: string): BlobTypeName {
   return 'ctrl'
 }
 
-function splitRegistersToBlobTypes(groupSpec: GroupSpec): BlobTypeMap {
-  const result: BlobTypeMap = {
+function splitRegistersToBlobTypes(groupSpec: GroupSpec): Record<BaseBlobTypeName, GroupSpec> {
+  const result: Record<BaseBlobTypeName, GroupSpec> = {
     dma: {},
     activation: {},
     ctrl: {},
@@ -111,7 +115,7 @@ async function fetchYamlText(url: string, label: string): Promise<string> {
 async function loadBlobTypeDefinitions(): Promise<BlobTypeMap> {
   const registersText = await fetchYamlText('/defs/registers.yaml', 'registers.yaml')
   const fullGroupSpec = parseGroupSpecFromYaml(registersText, 'registers.yaml')
-  return splitRegistersToBlobTypes(fullGroupSpec)
+  return { ...splitRegistersToBlobTypes(fullGroupSpec), desc: fullGroupSpec }
 }
 
 type SectionPlan = {
@@ -218,7 +222,55 @@ function flattenRegistersByPlan(groupSpec: GroupSpec, plan: SectionPlan[]): Regi
   return entries
 }
 
+/**
+ * 与编译器 section 计划无关：按 `registers.yaml` 顶层的 key 顺序，逐组、逐条向下展开，
+ * 第 n 个寄存器 offset = n * 4。
+ */
+function flattenRegistersLinearTopToBottom(groupSpec: GroupSpec): RegisterEntry[] {
+  const entries: RegisterEntry[] = []
+  let registerIndex = 0
+  for (const groupName of Object.keys(groupSpec)) {
+    if (groupName.toUpperCase() === 'DMA') {
+      continue
+    }
+    const registers = groupSpec[groupName]
+    if (!Array.isArray(registers)) {
+      continue
+    }
+    for (const reg of registers) {
+      const regObj = reg as RegisterSpec
+      const regNameUpper = String(regObj.name).toUpperCase()
+      const isUnknownPlaceholder = regNameUpper === 'UNKNOW' || regNameUpper === 'UNKNOWN'
+      const offset = registerIndex * 4
+      entries.push({
+        key: `desc:${groupName}:${String(regObj.name)}:${offset}`,
+        groupName,
+        registerName: String(regObj.name),
+        registerIndex,
+        offset,
+        fields: Array.isArray(regObj.args) ? regObj.args : [],
+        isAlignmentReserved: isUnknownPlaceholder,
+      })
+      registerIndex += 1
+    }
+  }
+  return entries
+}
+
+function isSavedBlobType(t: unknown): t is BlobTypeName {
+  return (
+    t === 'dma' ||
+    t === 'activation' ||
+    t === 'ctrl' ||
+    t === 'parameter' ||
+    t === 'desc'
+  )
+}
+
 function flattenRegisters(blobTypeName: BlobTypeName, groupSpec: GroupSpec): RegisterEntry[] {
+  if (blobTypeName === 'desc') {
+    return flattenRegistersLinearTopToBottom(groupSpec)
+  }
   if (blobTypeName === 'dma') {
     const dma = groupSpec.DMA
     if (Array.isArray(dma)) {
@@ -240,6 +292,52 @@ function flattenRegisters(blobTypeName: BlobTypeName, groupSpec: GroupSpec): Reg
     groupSpec,
     Object.keys(groupSpec).map((groupName) => ({ groupName, align: 1 })),
   )
+}
+
+function buildRegisterOccurrenceKey(entry: Pick<RegisterEntry, 'groupName' | 'registerName'>, occ: number): string {
+  return `${entry.groupName}|${entry.registerName}|${occ}`
+}
+
+function composeDescBytesFromSegments(
+  descEntries: RegisterEntry[],
+  blobTypes: BlobTypeMap,
+  segmentBytes: Partial<Record<DescSegmentBlobType, Uint8Array>>,
+  endianness: Endianness,
+): Uint8Array {
+  const out = new Uint8Array(descEntries.length * 4)
+
+  const descOccurrenceCounter = new Map<string, number>()
+  const descOffsetByOccurrenceKey = new Map<string, number>()
+  for (const entry of descEntries) {
+    const stem = `${entry.groupName}|${entry.registerName}`
+    const occ = descOccurrenceCounter.get(stem) ?? 0
+    descOccurrenceCounter.set(stem, occ + 1)
+    descOffsetByOccurrenceKey.set(buildRegisterOccurrenceKey(entry, occ), entry.offset)
+  }
+
+  const segments: DescSegmentBlobType[] = ['ctrl', 'activation', 'parameter']
+  for (const segment of segments) {
+    const bytes = segmentBytes[segment]
+    if (!bytes) {
+      continue
+    }
+    const segmentEntries = flattenRegisters(segment, blobTypes[segment])
+    const segOccurrenceCounter = new Map<string, number>()
+    for (const entry of segmentEntries) {
+      const stem = `${entry.groupName}|${entry.registerName}`
+      const occ = segOccurrenceCounter.get(stem) ?? 0
+      segOccurrenceCounter.set(stem, occ + 1)
+      const key = buildRegisterOccurrenceKey(entry, occ)
+      const descOffset = descOffsetByOccurrenceKey.get(key)
+      if (descOffset === undefined) {
+        continue
+      }
+      const word = readWord(bytes, entry.offset, endianness)
+      writeWord(out, descOffset, word, endianness)
+    }
+  }
+
+  return out
 }
 
 function readWord(bytes: Uint8Array, offset: number, endianness: Endianness): number {
@@ -304,7 +402,8 @@ function formatHex32(value: number): string {
   return `0x${(value >>> 0).toString(16).padStart(8, '0')}`
 }
 
-const LOCAL_STATE_KEY = 'regblobvisual:lastState:v1'
+const LOCAL_STATE_KEY = 'regblobvisual:lastState:v2'
+const SHARE_PAYLOAD_PREFIX = 'regblobvisual:share:v2/'
 
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = ''
@@ -327,12 +426,6 @@ function base64UrlToBytes(input: string): Uint8Array {
   return out
 }
 
-function encodeSharePayload(payload: Record<string, unknown>): string {
-  const json = JSON.stringify(payload)
-  const bytes = new TextEncoder().encode(json)
-  return bytesToBase64Url(bytes)
-}
-
 function decodeSharePayload(raw: string): Record<string, unknown> {
   const bytes = base64UrlToBytes(raw)
   const text = new TextDecoder().decode(bytes)
@@ -341,6 +434,26 @@ function decodeSharePayload(raw: string): Record<string, unknown> {
     throw new Error('分享链接内容无效')
   }
   return parsed as Record<string, unknown>
+}
+
+async function computeShortShareId(payload: Record<string, unknown>): Promise<string> {
+  const json = JSON.stringify(payload)
+  const bytes = new TextEncoder().encode(json)
+  if (globalThis.crypto?.subtle) {
+    const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+    // 12 bytes => 16 chars base64url (short and still enough for local keying)
+    return bytesToBase64Url(new Uint8Array(digest).subarray(0, 12))
+  }
+  let hash = 0x811c9dc5
+  for (let i = 0; i < bytes.length; i += 1) {
+    hash ^= bytes[i]
+    hash = Math.imul(hash, 0x01000193) >>> 0
+  }
+  return hash.toString(16).padStart(8, '0')
+}
+
+function getShareStorageKey(shareId: string): string {
+  return `${SHARE_PAYLOAD_PREFIX}${shareId}/payload`
 }
 
 async function computeBlobHash(bytes: Uint8Array): Promise<string> {
@@ -394,15 +507,20 @@ function App() {
   const [binaryBytesB, setBinaryBytesB] = useState<Uint8Array>()
   const [wordValuesA, setWordValuesA] = useState<number[]>([])
   const [wordValuesB, setWordValuesB] = useState<number[]>([])
+  const [descSegmentBytesB, setDescSegmentBytesB] = useState<
+    Partial<Record<DescSegmentBlobType, Uint8Array>>
+  >({})
   const [fileNameA, setFileNameA] = useState<string>('edited_blob.bin')
   const [fileHashA, setFileHashA] = useState<string>()
   const [fileHashB, setFileHashB] = useState<string>()
   const [shareUrl, setShareUrl] = useState<string>()
+  const [uploadModalTarget, setUploadModalTarget] = useState<'A' | 'B' | null>(null)
   const [blobTypes, setBlobTypes] = useState<BlobTypeMap>({
     dma: {},
     activation: {},
     ctrl: {},
     parameter: {},
+    desc: {},
   })
   const [definitionsLoading, setDefinitionsLoading] = useState(true)
   const [definitionsError, setDefinitionsError] = useState<string>()
@@ -440,8 +558,15 @@ function App() {
       return
     }
     try {
-      const encoded = hash.slice(3)
-      const payload = decodeSharePayload(encoded)
+      const encodedOrShareId = hash.slice(3)
+      let payload: Record<string, unknown>
+      const stored = localStorage.getItem(getShareStorageKey(encodedOrShareId))
+      if (stored) {
+        payload = JSON.parse(stored) as Record<string, unknown>
+      } else {
+        // Backward compatibility: old links embed full payload directly.
+        payload = decodeSharePayload(encodedOrShareId)
+      }
       const payloadBlobType = payload.t
       const payloadEndian = payload.e
       const payloadA = payload.a
@@ -449,10 +574,7 @@ function App() {
       const payloadNameA = payload.nA
 
       if (
-        (payloadBlobType === 'dma' ||
-          payloadBlobType === 'activation' ||
-          payloadBlobType === 'ctrl' ||
-          payloadBlobType === 'parameter') &&
+        isSavedBlobType(payloadBlobType) &&
         (payloadEndian === 'little' || payloadEndian === 'big') &&
         typeof payloadA === 'string'
       ) {
@@ -461,6 +583,7 @@ function App() {
         setBinaryBytesA(base64UrlToBytes(payloadA))
         setFileNameA(typeof payloadNameA === 'string' ? payloadNameA : 'shared_blob_a_edited.bin')
         if (typeof payloadB === 'string' && payloadB.length > 0) {
+          setDescSegmentBytesB({})
           setBinaryBytesB(base64UrlToBytes(payloadB))
         }
         setShareUrl(window.location.href)
@@ -483,32 +606,12 @@ function App() {
       }
       const payloadBlobType = payload.t
       const payloadEndian = payload.e
-      const payloadA = payload.a
-      const payloadB = payload.b
-      if (
-        (payloadBlobType === 'dma' ||
-          payloadBlobType === 'activation' ||
-          payloadBlobType === 'ctrl' ||
-          payloadBlobType === 'parameter') &&
-        (payloadEndian === 'little' || payloadEndian === 'big')
-      ) {
+      if (isSavedBlobType(payloadBlobType) && (payloadEndian === 'little' || payloadEndian === 'big')) {
         setBlobTypeName(payloadBlobType)
         setEndianness(payloadEndian)
       }
-      if (typeof payloadA === 'string' && payloadA.length > 0) {
-        setBinaryBytesA(base64UrlToBytes(payloadA))
-      }
-      if (typeof payloadB === 'string' && payloadB.length > 0) {
-        setBinaryBytesB(base64UrlToBytes(payloadB))
-      }
       if (typeof payload.nA === 'string') {
         setFileNameA(payload.nA)
-      }
-      if (typeof payload.hA === 'string') {
-        setFileHashA(payload.hA)
-      }
-      if (typeof payload.hB === 'string') {
-        setFileHashB(payload.hB)
       }
     } catch {
       // ignore invalid cache payload
@@ -516,24 +619,17 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (!binaryBytesA && !binaryBytesB) {
-      return
-    }
     const payload = {
       t: blobTypeName,
       e: endianness,
-      a: binaryBytesA ? bytesToBase64Url(binaryBytesA) : '',
-      b: binaryBytesB ? bytesToBase64Url(binaryBytesB) : '',
       nA: fileNameA,
-      hA: fileHashA ?? '',
-      hB: fileHashB ?? '',
     }
     try {
       localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(payload))
     } catch {
       // local cache may fail due to browser quota limits
     }
-  }, [binaryBytesA, binaryBytesB, blobTypeName, endianness, fileNameA, fileHashA, fileHashB])
+  }, [blobTypeName, endianness, fileNameA])
 
   const currentGroupSpec = useMemo(() => {
     return blobTypes[blobTypeName]
@@ -568,7 +664,42 @@ function App() {
     setWordValuesB(registerEntries.map((entry) => readWord(binaryBytesB, entry.offset, endianness)))
   }, [binaryBytesB, endianness, registerEntries])
 
-  const uploadBinary = async (target: 'A' | 'B') => {
+  useEffect(() => {
+    if (blobTypeName !== 'desc') {
+      return
+    }
+    const hasSegment = Object.keys(descSegmentBytesB).length > 0
+    if (!hasSegment || registerEntries.length === 0) {
+      return
+    }
+    const combined = composeDescBytesFromSegments(registerEntries, blobTypes, descSegmentBytesB, endianness)
+    setBinaryBytesB(combined)
+    void computeBlobHash(combined).then((hash) => {
+      setFileHashB(hash)
+    })
+  }, [blobTypeName, blobTypes, descSegmentBytesB, endianness, registerEntries])
+
+  const loadBinaryFile = async (target: 'A' | 'B', selected: File) => {
+    const arrayBuffer = await selected.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    const hash = await computeBlobHash(bytes)
+    if (target === 'A') {
+      setBinaryBytesA(bytes)
+      setFileNameA(selected.name.replace(/(\.\w+)?$/, `_${blobTypeName}_edited.bin`))
+      setFileHashA(hash)
+    } else {
+      setDescSegmentBytesB({})
+      setBinaryBytesB(bytes)
+      setFileHashB(hash)
+    }
+    message.success(`Blob ${target} 已加载，大小 ${bytes.length} bytes，hash=${hash.slice(0, 12)}...`)
+  }
+
+  const openUploadModal = (target: 'A' | 'B') => {
+    setUploadModalTarget(target)
+  }
+
+  const uploadDescSegmentB = async (segment: DescSegmentBlobType) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.bin,.blob'
@@ -580,17 +711,20 @@ function App() {
       const arrayBuffer = await selected.arrayBuffer()
       const bytes = new Uint8Array(arrayBuffer)
       const hash = await computeBlobHash(bytes)
-      if (target === 'A') {
-        setBinaryBytesA(bytes)
-        setFileNameA(selected.name.replace(/(\.\w+)?$/, `_${blobTypeName}_edited.bin`))
-        setFileHashA(hash)
-      } else {
-        setBinaryBytesB(bytes)
-        setFileHashB(hash)
-      }
-      message.success(`Blob ${target} 已加载，大小 ${bytes.length} bytes，hash=${hash.slice(0, 12)}...`)
+      setDescSegmentBytesB((prev) => ({ ...prev, [segment]: bytes }))
+      message.success(
+        `Blob B-${segment} 已加载，大小 ${bytes.length} bytes，hash=${hash.slice(0, 12)}...（desc 缺失分片按 0）`,
+      )
     }
     input.click()
+  }
+
+  const clearBlobB = () => {
+    setBinaryBytesB(undefined)
+    setWordValuesB([])
+    setFileHashB(undefined)
+    setDescSegmentBytesB({})
+    message.success('Blob B 已清空')
   }
 
   const syncWordsFromBinaryA = () => {
@@ -668,7 +802,7 @@ function App() {
     }, 0)
   }, [binaryBytesB, registerEntries, wordValuesA, wordValuesB])
 
-  const buildShareUrl = () => {
+  const buildShareUrl = async () => {
     if (!binaryBytesA) {
       message.warning('请先加载 Blob A')
       return
@@ -681,14 +815,16 @@ function App() {
       b: binaryBytesB ? bytesToBase64Url(binaryBytesB) : '',
       nA: fileNameA,
     }
-    const encoded = encodeSharePayload(payload)
-    const url = `${window.location.origin}${window.location.pathname}#s=${encoded}`
-    setShareUrl(url)
-    if (url.length > 7000) {
-      message.warning('分享链接较长，部分聊天工具可能截断')
-    } else {
-      message.success('已生成分享链接')
+    const shareId = await computeShortShareId(payload)
+    try {
+      localStorage.setItem(getShareStorageKey(shareId), JSON.stringify(payload))
+    } catch (error) {
+      message.error(`保存分享内容失败: ${(error as Error).message}`)
+      return
     }
+    const url = `${window.location.origin}${window.location.pathname}#s=${shareId}`
+    setShareUrl(url)
+    message.success(`已生成分享链接（id=${shareId}）`)
   }
 
   const copyShareUrl = async () => {
@@ -710,7 +846,8 @@ function App() {
         Blob Register Visual Editor
       </Title>
       <Text type="secondary">
-        固定支持 dma / activation / ctrl / parameter 四种 blob，可视化按位编辑并导出写回
+        固定支持 dma / activation / ctrl / parameter 四种切块 blob，以及 desc（全表按
+        registers.yaml 自上而下串行 offset）；可视化按位编辑并导出写回
       </Text>
 
       <Divider />
@@ -736,6 +873,7 @@ function App() {
               { value: 'activation', label: 'activation' },
               { value: 'ctrl', label: 'ctrl' },
               { value: 'parameter', label: 'parameter' },
+              { value: 'desc', label: 'desc (全表线性)' },
             ]}
             onChange={(value) => {
               const nextType = value as BlobTypeName
@@ -749,17 +887,42 @@ function App() {
           <Button
             icon={<UploadOutlined />}
             disabled={definitionsLoading || Boolean(definitionsError) || registerEntries.length === 0}
-            onClick={() => uploadBinary('A')}
+            onClick={() => openUploadModal('A')}
           >
             加载 Blob A（可编辑）
           </Button>
           <Button
             icon={<UploadOutlined />}
             disabled={definitionsLoading || Boolean(definitionsError) || registerEntries.length === 0}
-            onClick={() => uploadBinary('B')}
+            onClick={() => openUploadModal('B')}
           >
             加载 Blob B（对比）
           </Button>
+          {blobTypeName === 'desc' && (
+            <>
+              <Button
+                icon={<UploadOutlined />}
+                disabled={definitionsLoading || Boolean(definitionsError) || registerEntries.length === 0}
+                onClick={() => uploadDescSegmentB('ctrl')}
+              >
+                加载 B-ctrl（desc）
+              </Button>
+              <Button
+                icon={<UploadOutlined />}
+                disabled={definitionsLoading || Boolean(definitionsError) || registerEntries.length === 0}
+                onClick={() => uploadDescSegmentB('activation')}
+              >
+                加载 B-act（desc）
+              </Button>
+              <Button
+                icon={<UploadOutlined />}
+                disabled={definitionsLoading || Boolean(definitionsError) || registerEntries.length === 0}
+                onClick={() => uploadDescSegmentB('parameter')}
+              >
+                加载 B-param（desc）
+              </Button>
+            </>
+          )}
           <Select
             style={{ width: 160 }}
             value={endianness}
@@ -783,6 +946,16 @@ function App() {
             重载 Blob B
           </Button>
           <Button
+            onClick={clearBlobB}
+            disabled={
+              definitionsLoading ||
+              Boolean(definitionsError) ||
+              (!binaryBytesB && Object.keys(descSegmentBytesB).length === 0)
+            }
+          >
+            清空 Blob B
+          </Button>
+          <Button
             type="primary"
             onClick={downloadBlob}
             disabled={
@@ -803,6 +976,9 @@ function App() {
           {binaryBytesA && <Tag color="gold">Blob A: {binaryBytesA.length} bytes</Tag>}
           {binaryBytesB && <Tag color="volcano">Blob B: {binaryBytesB.length} bytes</Tag>}
           {binaryBytesB && <Tag color="magenta">差异寄存器: {changedRegisterCount}</Tag>}
+          {blobTypeName === 'desc' && Object.keys(descSegmentBytesB).length > 0 && (
+            <Tag color="cyan">B 分片: {Object.keys(descSegmentBytesB).join(' + ')}</Tag>
+          )}
           {fileHashA && (
             <Tag color="gold">
               A-hash: {fileHashA.slice(0, 12)}
@@ -830,6 +1006,37 @@ function App() {
           )}
         </Flex>
       </Card>
+
+      <Modal
+        title={uploadModalTarget === 'A' ? '加载 Blob A（可编辑）' : '加载 Blob B（对比）'}
+        open={uploadModalTarget !== null}
+        footer={null}
+        onCancel={() => setUploadModalTarget(null)}
+        destroyOnHidden
+      >
+        {uploadModalTarget && (
+          <Upload.Dragger
+            accept=".bin,.blob"
+            multiple={false}
+            showUploadList={false}
+            beforeUpload={(file) => {
+              const target = uploadModalTarget
+              void loadBinaryFile(target, file as File)
+                .then(() => setUploadModalTarget(null))
+                .catch((error) => {
+                  message.error(`加载失败: ${(error as Error).message}`)
+                })
+              return Upload.LIST_IGNORE
+            }}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">拖拽文件到这里，或点击选择文件</p>
+            <p className="ant-upload-hint">支持 .bin / .blob，单文件上传</p>
+          </Upload.Dragger>
+        )}
+      </Modal>
 
       {registerEntries.length > 0 && !binaryBytesA && (
         <Alert
@@ -873,6 +1080,7 @@ function App() {
             const wordA = wordValuesA[index] ?? 0
             const wordB = wordValuesB[index] ?? 0
             const registerDiff = binaryBytesB ? wordA !== wordB : false
+            const registerAllZero = binaryBytesB ? wordA === 0 && wordB === 0 : wordA === 0
             return {
               key: entry.key,
               label: (
@@ -880,7 +1088,9 @@ function App() {
                   className={
                     registerDiff
                       ? 'register-header-frame register-header-diff-frame'
-                      : 'register-header-frame'
+                      : registerAllZero
+                        ? 'register-header-frame register-header-zero-dim'
+                        : 'register-header-frame'
                   }
                 >
                   <div className="register-header-content">
@@ -906,7 +1116,7 @@ function App() {
                 </div>
               ),
               children: (
-                <div>
+                <div className={registerAllZero ? 'register-body-zero-dim' : undefined}>
                   {entry.fields.length === 0 ? (
                     <Card size="small" className={registerDiff ? 'field-diff-card' : undefined}>
                       <Flex justify="space-between" align="center" wrap gap={12}>

@@ -62,6 +62,10 @@
   background: #fff1f0;
 }
 
+.register-header-zero-dim {
+  opacity: 0.45;
+}
+
 .definitions-loading {
   display: flex;
   justify-content: center;
@@ -85,4 +89,8 @@
 .field-ab-values .ant-tag {
   font-size: 14px;
   font-weight: 600;
+}
+
+.register-body-zero-dim {
+  opacity: 0.45;
 }

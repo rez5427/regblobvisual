@@ -2,9 +2,14 @@
 
 用于可视化编辑寄存器 blob：
 
-- 固定支持 4 类定义：`dma` / `activation` / `ctrl` / `parameter`
+- 固定支持 4 类切块定义：`dma` / `activation` / `ctrl` / `parameter`，以及 `desc`（按
+  `registers.yaml` 自上而下线性展开，但会跳过 `DMA` 分组，offset 连续）
 - 读取二进制 `blob`
 - 按位域编辑并导出写回
+- `desc` 视图支持 B 分片对比：可分别上传 `B-ctrl` / `B-act` / `B-param`，自动合成到 desc
+  对比槽位（未上传分片按 0）
+- 分享链接使用短 hash id（`#s=<id>`），实际 blob 内容按 id 存在浏览器本地；默认不再自动恢复上次
+  上传文件，只有打开对应分享链接时才会读入
 
 ---
 
@@ -144,12 +149,17 @@ npm run preview -- --host 0.0.0.0 --port 4173
 - `../registers.yaml`（仓库根目录）
 - `ui/public/defs/registers.yaml`（前端运行时读取）
 
-前端在运行时会从这个 `registers.yaml` 自动拆分出：
+前端在运行时会从这个 `registers.yaml` 自动拆分出 4 类（与编译器 descriptor
+section/对齐 一致；用于对照真实 blob）：
 
 - `dma`
 - `activation`
 - `ctrl`
 - `parameter`
+
+另可选 **`desc`**：不按 section 计划，只按文件里 **各分组出现的顺序**（`js-yaml` 保留 key
+顺序），在每组内再按列表顺序，把所有寄存器串成第 0、1、2… 个 word，offset 分别为 `0x0`,
+`0x4`, `0x8` …
 
 `registers.yaml` 顶层是寄存器分组，分组下是寄存器数组，例如：
 
