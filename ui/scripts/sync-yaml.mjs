@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
 const publicDefs = path.resolve(__dirname, '../public/defs')
-const sourceRegisters = '/home/rez/workbench/cix/cnnc/cxn/registers.yaml'
 const targetRegisters = path.join(repoRoot, 'registers.yaml')
 const publicRegisters = path.join(publicDefs, 'registers.yaml')
 
@@ -15,6 +14,10 @@ function fileSize(p) {
   } catch {
     return -1
   }
+}
+
+function isNonEmpty(p) {
+  return fileSize(p) > 0
 }
 
 function ensureDir(p) {
@@ -28,15 +31,23 @@ function copyFile(src, dst) {
 function main() {
   ensureDir(publicDefs)
 
-  if (fileSize(sourceRegisters) <= 0) {
-    throw new Error(`缺少或为空: ${sourceRegisters}`)
+  if (isNonEmpty(targetRegisters)) {
+    copyFile(targetRegisters, publicRegisters)
+    process.stdout.write(
+      `sync-yaml: ${targetRegisters} (${fileSize(targetRegisters)} bytes) -> ${publicRegisters}\n`,
+    )
+    return
   }
 
-  copyFile(sourceRegisters, targetRegisters)
-  copyFile(sourceRegisters, publicRegisters)
-  process.stdout.write(`Synced registers.yaml from ${sourceRegisters}\n`)
-  process.stdout.write(` -> ${targetRegisters} (${fileSize(targetRegisters)} bytes)\n`)
-  process.stdout.write(` -> ${publicRegisters} (${fileSize(publicRegisters)} bytes)\n`)
+  if (isNonEmpty(publicRegisters)) {
+    copyFile(publicRegisters, targetRegisters)
+    process.stdout.write(
+      `sync-yaml: no root registers.yaml; copied ${publicRegisters} (${fileSize(publicRegisters)} bytes) -> ${targetRegisters}\n`,
+    )
+    return
+  }
+
+  throw new Error(`registers.yaml missing: add ${targetRegisters} or ${publicRegisters}`)
 }
 
 try {

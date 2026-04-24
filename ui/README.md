@@ -56,7 +56,8 @@ npm install
 npm run build
 ```
 
-`prebuild` 会自动运行 `sync-yaml`，把仓库根目录四个 yaml 同步到打包产物中。
+`prebuild` 会自动运行 `sync-yaml`，把仓库根目录的 `registers.yaml` 复制到 `ui/public/defs/`
+供前端打包使用。
 
 ### 2.3 发布到 Nginx 目录
 
@@ -140,14 +141,11 @@ npm run preview -- --host 0.0.0.0 --port 4173
 
 ## 6) YAML 说明
 
-当前只使用 **一个源文件**：
+当前只使用 **一个源文件**（在仓库里维护）：
 
-- `/home/rez/workbench/cix/cnnc/cxn/registers.yaml`
+- 仓库根目录 `registers.yaml`
 
-`sync-yaml` 会把它同步到：
-
-- `../registers.yaml`（仓库根目录）
-- `ui/public/defs/registers.yaml`（前端运行时读取）
+`sync-yaml` 会把它同步到 `ui/public/defs/registers.yaml`（前端 `fetch` 与打包用）。
 
 前端在运行时会从这个 `registers.yaml` 自动拆分出 4 类（与编译器 descriptor
 section/对齐 一致；用于对照真实 blob）：
